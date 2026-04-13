@@ -211,6 +211,30 @@ function Get-CurrentBranchName() {
   return $currentBranch
 }
 
+function Get-CheckedOutBranchName() {
+  $currentBranch = Get-GitOutput @("branch", "--show-current")
+  if (-not $currentBranch) {
+    Fail "Aktueller lokaler Git-Branch konnte nicht ermittelt werden."
+  }
+  return $currentBranch
+}
+
+function Assert-SelectedBranchMatchesCheckedOut([string]$ContextLabel) {
+  if (-not (Test-IsGitRepository)) {
+    return
+  }
+
+  $selectedBranch = $Branch.Trim()
+  if ($selectedBranch.Length -eq 0) {
+    return
+  }
+
+  $checkedOutBranch = Get-CheckedOutBranchName
+  if ($checkedOutBranch -ne $selectedBranch) {
+    Fail ("{0}: Ausgewaehlter Branch '{1}' ist lokal nicht ausgecheckt (aktuell: '{2}'). Bitte lokal den passenden Branch auschecken oder im Menue denselben Branch angeben." -f $ContextLabel, $selectedBranch, $checkedOutBranch)
+  }
+}
+
 function Get-UpstreamBranch() {
   return Get-GitOutput @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
 }
@@ -443,34 +467,34 @@ function New-LocalDatabaseTransferDump() {
 
 function Push-CurrentBranch() {
   Step "Lokalen Stand nach GitHub pushen"
+  $targetBranch = Get-CurrentBranchName
 
   if (Is-DryRun) {
     if (Test-IsGitRepository) {
-      $currentBranch = Get-CurrentBranchName
+      Assert-SelectedBranchMatchesCheckedOut "Push"
       $upstream = Get-UpstreamBranch
-      Write-WhatIf ("Wuerde lokalen Branch pushen: {0}" -f $currentBranch)
+      Write-WhatIf ("Wuerde lokalen Branch pushen: {0}" -f $targetBranch)
       Write-Info "Lokaler Befehl:"
       if ($upstream) {
-        Write-Host "git push" -ForegroundColor DarkGray
+        Write-Host ("git push origin {0}" -f $targetBranch) -ForegroundColor DarkGray
       } else {
-        Write-Host ("git push -u origin {0}" -f $currentBranch) -ForegroundColor DarkGray
+        Write-Host ("git push -u origin {0}" -f $targetBranch) -ForegroundColor DarkGray
       }
     } else {
-      $currentBranch = Get-CurrentBranchName
-      Write-WhatIf ("Wuerde lokalen Branch pushen: {0}" -f $currentBranch)
+      Write-WhatIf ("Wuerde lokalen Branch pushen: {0}" -f $targetBranch)
       Write-Info "Lokaler Befehl:"
-      Write-Host ("git push -u origin {0}" -f $currentBranch) -ForegroundColor DarkGray
+      Write-Host ("git push -u origin {0}" -f $targetBranch) -ForegroundColor DarkGray
     }
     return
   }
 
-  $currentBranch = Get-CurrentBranchName
   Assert-CleanWorkingTree
+  Assert-SelectedBranchMatchesCheckedOut "Push"
   $upstream = Get-UpstreamBranch
   if ($upstream) {
-    Invoke-Checked "git" @("push") "Git-Push ist fehlgeschlagen."
+    Invoke-Checked "git" @("push", "origin", $targetBranch) "Git-Push ist fehlgeschlagen."
   } else {
-    Invoke-Checked "git" @("push", "-u", "origin", $currentBranch) "Git-Push mit neuem Upstream ist fehlgeschlagen."
+    Invoke-Checked "git" @("push", "-u", "origin", $targetBranch) "Git-Push mit neuem Upstream ist fehlgeschlagen."
   }
 }
 
@@ -513,6 +537,9 @@ function Invoke-ServerDeploy() {
 
     if ($hasLocalGit) {
       Assert-CleanWorkingTree
+      if ($target.Type -eq "branch") {
+        Assert-SelectedBranchMatchesCheckedOut "Deploy"
+      }
     } else {
       Warn "Lokales Git-Repository nicht verfuegbar. Es wird nur der Remote-Stand verwendet."
     }
@@ -599,6 +626,10 @@ if [ ! -d '$ServerRepoPath/.git' ]; then
   exit 1
 fi
 cd '$ServerRepoPath'
+if [ ! -f '$ComposeEnvFile' ]; then
+  echo 'Env-Datei $ComposeEnvFile fehlt.' >&2
+  exit 1
+fi
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo 'Server-Repository enthaelt lokale Aenderungen. Pull-only-Deploy bricht ab.' >&2
   exit 1
@@ -614,7 +645,7 @@ echo 'Optionale Datenbankschritte.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d
+docker compose --env-file '$ComposeEnvFile' up -d --remove-orphans
 docker compose ps
 $remoteHealthCommand
 echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
@@ -660,6 +691,7 @@ function Invoke-ServerSync() {
   Write-Info ("DB-Transfer: {0}" -f $(if ($SyncDatabase) { "ja" } else { "nein" }))
 
   Show-GitStatus
+  Assert-SelectedBranchMatchesCheckedOut "Serverabgleich"
   Push-CurrentBranch
 
   if ($SyncDatabase) {
@@ -746,6 +778,10 @@ if [ ! -d '$ServerRepoPath/.git' ]; then
 fi
 mkdir -p '$serverMediaPath' '$BackupDir'
 cd '$ServerRepoPath'
+if [ ! -f '$ComposeEnvFile' ]; then
+  echo 'Env-Datei $ComposeEnvFile fehlt.' >&2
+  exit 1
+fi
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo 'Server-Repository enthaelt lokale Aenderungen. Serverabgleich bricht ab.' >&2
   exit 1
@@ -767,7 +803,7 @@ echo 'Optionale Datenbankschritte nach dem Abgleich.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d
+docker compose --env-file '$ComposeEnvFile' up -d --remove-orphans
 docker compose ps
 $remoteHealthCommand
 echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
@@ -780,7 +816,7 @@ echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
     Write-Host "git status --short --branch" -ForegroundColor DarkGray
     $upstream = Get-UpstreamBranch
     if ($upstream) {
-      Write-Host "git push" -ForegroundColor DarkGray
+      Write-Host ("git push origin {0}" -f $targetBranch) -ForegroundColor DarkGray
     } else {
       Write-Host ("git push -u origin {0}" -f $targetBranch) -ForegroundColor DarkGray
     }
@@ -936,6 +972,7 @@ function Commit-InteractiveLocalChanges() {
 function Prepare-InteractiveGitAction([switch]$PushBeforeProceeding) {
   Ensure-GitRepository
   Commit-InteractiveLocalChanges
+  Assert-SelectedBranchMatchesCheckedOut "Interaktive Aktion"
 
   if ($PushBeforeProceeding -and (Get-AheadCount) -gt 0) {
     Step "Lokalen Branch vorab nach GitHub pushen"
