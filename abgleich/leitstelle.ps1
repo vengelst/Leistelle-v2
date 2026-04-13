@@ -1,12 +1,13 @@
 #Requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-  [ValidateSet("check", "push", "deploy", "all", "version", "menu")]
+  [ValidateSet("check", "push", "deploy", "all", "version", "menu", "server-sync")]
   [string]$Action = "all",
   [string]$Server = "root@vivahome.de",
-  [string]$ServerRepoPath = "/srv/leitstelle/repo",
+  [string]$ServerRepoPath = "/opt/leitstelle",
+  [string]$RemoteGitUrl = "",
   [string]$ComposeEnvFile = ".env.production",
-  [string]$HealthUrl = "http://127.0.0.1:8080/health",
+  [string]$HealthUrl = "http://127.0.0.1:18080/health",
   [string]$Branch = "",
   [string]$Tag = "",
   [string]$Version = "",
@@ -15,7 +16,8 @@ param(
   [switch]$RunSeed,
   [switch]$ConfirmSeed,
   [switch]$RunBackup,
-  [string]$BackupDir = "/srv/leitstelle/backups",
+  [switch]$SyncDatabase,
+  [string]$BackupDir = "/opt/leitstelle/backups",
   [switch]$SkipHealthCheck
 )
 
@@ -29,6 +31,7 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 $scriptDir = $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..")).Path
 Set-Location $repoRoot
+$serverMediaPath = "{0}/media" -f $ServerRepoPath.TrimEnd("/")
 
 function Info([string]$Message) { Write-Host "[INFO]  $Message" -ForegroundColor Cyan }
 function Ok([string]$Message) { Write-Host "[ OK ]  $Message" -ForegroundColor Green }
@@ -61,6 +64,15 @@ function Fail([string]$Message) {
 
 function Is-DryRun() {
   return [bool]$WhatIfPreference
+}
+
+function Get-ParentUnixPath([string]$Path) {
+  $normalized = $Path.Trim()
+  $lastSlash = $normalized.LastIndexOf("/")
+  if ($lastSlash -le 0) {
+    return "/"
+  }
+  return $normalized.Substring(0, $lastSlash)
 }
 
 function Show-ScriptHeader([string]$ResolvedAction, [string]$ResolvedTargetType, [string]$ResolvedTargetName) {
@@ -119,6 +131,24 @@ function Get-GitOutput([string[]]$Arguments) {
     return $null
   }
   return $result.StdOut
+}
+
+function Get-OriginGitUrl() {
+  return Get-GitOutput @("remote", "get-url", "origin")
+}
+
+function Get-EffectiveRemoteGitUrl() {
+  if ($RemoteGitUrl.Trim().Length -gt 0) {
+    return $RemoteGitUrl.Trim()
+  }
+
+  Ensure-GitRepository
+  $originUrl = Get-OriginGitUrl
+  if (-not $originUrl) {
+    Fail "Git-Remote 'origin' konnte nicht ermittelt werden. Bitte -RemoteGitUrl setzen oder origin konfigurieren."
+  }
+
+  return $originUrl
 }
 
 function Ensure-GitRepository() {
@@ -195,13 +225,23 @@ function Get-HeadCommit() {
 }
 
 function Assert-CleanWorkingTree() {
-  $statusLines = @(git status --porcelain)
-  if ($LASTEXITCODE -ne 0) {
-    Fail "Git-Status konnte nicht gelesen werden."
-  }
+  $statusLines = Get-WorkingTreeStatusLines
   if ($statusLines.Count -gt 0) {
     Fail "Arbeitsverzeichnis ist nicht sauber. Bitte erst committen oder aufraeumen."
   }
+}
+
+function Get-WorkingTreeStatusLines() {
+  $result = Invoke-Captured "git" @("status", "--porcelain")
+  if ($result.ExitCode -ne 0) {
+    Fail "Git-Status konnte nicht gelesen werden."
+  }
+
+  if (-not $result.StdOut) {
+    return @()
+  }
+
+  return @($result.StdOut -split "`r?`n" | Where-Object { $_.Trim().Length -gt 0 })
 }
 
 function Assert-NoUnpushedCommits() {
@@ -214,6 +254,20 @@ function Assert-NoUnpushedCommits() {
   if ($aheadCount -and [int]$aheadCount -gt 0) {
     Fail "Lokale Commits sind noch nicht nach GitHub gepusht. Bitte erst pushen oder Action=all verwenden."
   }
+}
+
+function Get-AheadCount() {
+  $upstream = Get-UpstreamBranch
+  if (-not $upstream) {
+    return 0
+  }
+
+  $aheadCount = Get-GitOutput @("rev-list", "--count", "$upstream..HEAD")
+  if (-not $aheadCount) {
+    return 0
+  }
+
+  return [int]$aheadCount
 }
 
 function Assert-RemoteBranchExists([string]$BranchName) {
@@ -242,15 +296,15 @@ function Assert-TagDoesNotExist([string]$TagName) {
   }
 }
 
-function Show-GitStatus() {
+function Show-GitStatus([switch]$AllowMissingLocalGit) {
   Step "Lokalen Git-Status pruefen"
 
-  if (Is-DryRun -and -not (Test-IsGitRepository)) {
-    Write-WhatIf "Lokales Git-Repository ist im aktuellen Kontext nicht verfuegbar. Vorschau arbeitet mit expliziten Parametern."
-    return
-  }
-
-  if (-not (Test-IsGitRepository)) {
+  $hasLocalGit = Test-IsGitRepository
+  if (-not $hasLocalGit) {
+    if ((Is-DryRun) -and $AllowMissingLocalGit) {
+      Write-WhatIf "Lokales Git-Repository ist im aktuellen Kontext nicht verfuegbar. Vorschau arbeitet mit expliziten Parametern."
+      return
+    }
     Fail "Aktuelles Verzeichnis ist kein Git-Repository. Bitte das Skript aus dem geklonten Leitstelle-Repo starten."
   }
 
@@ -276,6 +330,76 @@ function Show-DeployPlan() {
   Write-Info ("Seed: {0}" -f $(if ($RunSeed) { "ja" } else { "nein" }))
   Write-Info ("Backup: {0}" -f $(if ($RunBackup) { "ja" } else { "nein" }))
   Write-Info ("Healthcheck: {0}" -f $(if ($SkipHealthCheck) { "uebersprungen" } else { "aktiv" }))
+}
+
+function Get-LocalDatabaseDumpPath() {
+  return Join-Path ([System.IO.Path]::GetTempPath()) "leitstelle-db-transfer.sql.gz"
+}
+
+function Wait-ForLocalDatabaseReady() {
+  for ($attempt = 1; $attempt -le 30; $attempt++) {
+    $result = Invoke-Captured "docker" @(
+      "compose",
+      "exec",
+      "-T",
+      "db",
+      "sh",
+      "-lc",
+      'export PGPASSWORD="$POSTGRES_PASSWORD"; pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1'
+    )
+
+    if ($result.ExitCode -eq 0) {
+      return
+    }
+
+    Start-Sleep -Seconds 2
+  }
+
+  Fail "Lokale Datenbank ist nicht rechtzeitig bereit geworden."
+}
+
+function New-LocalDatabaseTransferDump() {
+  $localDumpPath = Get-LocalDatabaseDumpPath
+  $containerDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
+
+  Step "Lokale Datenbank fuer Servertransfer sichern"
+
+  if (Is-DryRun) {
+    Write-WhatIf "Wuerde den lokalen DB-Container starten, einen Dump erzeugen und als Transferdatei vorbereiten."
+    Write-Info "Lokale Befehle:"
+    Write-Host "docker compose up -d db" -ForegroundColor DarkGray
+    Write-Host 'docker compose exec -T db sh -lc ''export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz''' -ForegroundColor DarkGray
+    Write-Host ("docker cp <db-container>:{0} ""{1}""" -f $containerDumpPath, $localDumpPath) -ForegroundColor DarkGray
+    return $localDumpPath
+  }
+
+  Invoke-Checked "docker" @("compose", "up", "-d", "db") "Lokaler DB-Container konnte nicht gestartet werden."
+  Wait-ForLocalDatabaseReady
+
+  Invoke-Checked "docker" @(
+    "compose",
+    "exec",
+    "-T",
+    "db",
+    "sh",
+    "-lc",
+    'export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz'
+  ) "Lokaler DB-Dump konnte nicht erzeugt werden."
+
+  $containerIdResult = Invoke-Captured "docker" @("compose", "ps", "-q", "db")
+  if ($containerIdResult.ExitCode -ne 0 -or -not $containerIdResult.StdOut) {
+    Fail "Lokaler DB-Container konnte nicht ermittelt werden."
+  }
+
+  if (Test-Path $localDumpPath) {
+    Remove-Item $localDumpPath -Force -ErrorAction SilentlyContinue
+  }
+
+  Invoke-Checked "docker" @("cp", ("{0}:{1}" -f $containerIdResult.StdOut, $containerDumpPath), $localDumpPath) "Lokaler DB-Dump konnte nicht kopiert werden."
+  Invoke-Captured "docker" @("compose", "exec", "-T", "db", "rm", "-f", $containerDumpPath) | Out-Null
+
+  Write-Info ("Transfer-Dump bereit: {0}" -f $localDumpPath)
+  return $localDumpPath
 }
 
 function Push-CurrentBranch() {
@@ -463,6 +587,156 @@ echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
   }
 }
 
+function Invoke-ServerSync() {
+  Ensure-GitRepository
+
+  $targetBranch = Get-CurrentBranchName
+  $effectiveRemoteGitUrl = Get-EffectiveRemoteGitUrl
+  $remoteRepoParent = Get-ParentUnixPath $ServerRepoPath
+  $remoteBootstrapClonePath = "/tmp/leitstelle-bootstrap-clone"
+  $remoteDbDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
+  $localDumpPath = $null
+
+  Step "Serverabgleich vorbereiten"
+  Write-Info ("Branch: {0}" -f $targetBranch)
+  Write-Info ("Server: {0}" -f $Server)
+  Write-Info ("Remote Git: {0}" -f $effectiveRemoteGitUrl)
+  Write-Info ("DB-Transfer: {0}" -f $(if ($SyncDatabase) { "ja" } else { "nein" }))
+
+  Show-GitStatus
+  Push-CurrentBranch
+
+  if ($SyncDatabase) {
+    $localDumpPath = New-LocalDatabaseTransferDump
+  }
+
+  $remoteHealthCommand = if ($SkipHealthCheck) {
+    "echo 'Healthcheck uebersprungen.'"
+  } else {
+    "curl -fsS '$HealthUrl' >/dev/null && echo 'Healthcheck erfolgreich.'"
+  }
+
+  $remoteRestoreCommand = if ($SyncDatabase) {
+    @"
+if [ ! -f '$remoteDbDumpPath' ]; then
+  echo 'DB-Transferdatei fehlt auf dem Server.' >&2
+  exit 1
+fi
+if [ ! -f './scripts/backup-postgres.sh' ]; then
+  echo 'Backup-Skript ./scripts/backup-postgres.sh fehlt.' >&2
+  exit 1
+fi
+echo '[db] Sicherung der Server-Datenbank vor Restore.'
+BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
+echo '[db] Starte DB-Container fuer Restore.'
+docker compose --env-file '$ComposeEnvFile' up -d db
+for i in `$(seq 1 30); do
+  if docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; pg_isready -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1'; then
+    break
+  fi
+  sleep 2
+done
+echo '[db] Ziel-Datenbank wird ersetzt.'
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"'
+gzip -dc '$remoteDbDumpPath' | docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1'
+rm -f '$remoteDbDumpPath'
+"@
+  } else {
+    "echo '[db] Kein Datenbanktransfer angefordert.'"
+  }
+
+  $remoteMigrationCommand = if ($RunMigration) {
+    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js'"
+  } else {
+    "echo 'Keine Migration angefordert.'"
+  }
+
+  $remoteSeedCommand = if ($RunSeed) {
+    @"
+echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
+docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js'
+"@
+  } else {
+    "echo 'Kein Seed angefordert.'"
+  }
+
+  $remoteScript = @"
+set -euo pipefail
+mkdir -p '$remoteRepoParent'
+mkdir -p '$ServerRepoPath'
+if [ ! -d '$ServerRepoPath/.git' ]; then
+  echo '[git] Server-Repo fehlt. Initialer Clone wird angelegt.'
+  rm -rf '$remoteBootstrapClonePath'
+  git clone '$effectiveRemoteGitUrl' '$remoteBootstrapClonePath'
+  cp -a '$remoteBootstrapClonePath'/. '$ServerRepoPath'/
+  rm -rf '$remoteBootstrapClonePath'
+fi
+mkdir -p '$serverMediaPath' '$BackupDir'
+cd '$ServerRepoPath'
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo 'Server-Repository enthaelt lokale Aenderungen. Serverabgleich bricht ab.' >&2
+  exit 1
+fi
+git remote set-url origin '$effectiveRemoteGitUrl'
+git fetch --prune --tags origin
+if git show-ref --verify --quiet 'refs/heads/$targetBranch'; then
+  git checkout '$targetBranch'
+else
+  git checkout -b '$targetBranch' --track 'origin/$targetBranch'
+fi
+git pull --ff-only origin '$targetBranch'
+TARGET_COMMIT=`$(git rev-parse --short HEAD)
+echo "Server-Ziel: branch $targetBranch (`$TARGET_COMMIT)"
+$remoteRestoreCommand
+echo 'Compose-Build startet.'
+docker compose --env-file '$ComposeEnvFile' build
+echo 'Optionale Datenbankschritte nach dem Abgleich.'
+$remoteMigrationCommand
+$remoteSeedCommand
+echo 'Compose-Stack wird gestartet oder aktualisiert.'
+docker compose --env-file '$ComposeEnvFile' up -d
+docker compose ps
+$remoteHealthCommand
+echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
+"@
+
+  if (Is-DryRun) {
+    Step "Trockenlauf"
+    Write-WhatIf ("Wuerde Branch '{0}' nach GitHub pushen und auf dem Server abgleichen." -f $targetBranch)
+    Write-Info "Lokale Befehle in dieser Aktion:"
+    Write-Host "git status --short --branch" -ForegroundColor DarkGray
+    $upstream = Get-UpstreamBranch
+    if ($upstream) {
+      Write-Host "git push" -ForegroundColor DarkGray
+    } else {
+      Write-Host ("git push -u origin {0}" -f $targetBranch) -ForegroundColor DarkGray
+    }
+    if ($SyncDatabase) {
+      Write-Host "docker compose up -d db" -ForegroundColor DarkGray
+      Write-Host 'docker compose exec -T db sh -lc ''export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz''' -ForegroundColor DarkGray
+      Write-Host ("scp ""{0}"" ""{1}:{2}""" -f (Get-LocalDatabaseDumpPath), $Server, $remoteDbDumpPath) -ForegroundColor DarkGray
+    }
+    Write-Info "Remote-Befehle auf dem Server waeren:"
+    Write-Host $remoteScript -ForegroundColor DarkGray
+    return
+  }
+
+  if ($SyncDatabase) {
+    Step "DB-Transferdatei auf den Server kopieren"
+    Invoke-Checked "scp" @($localDumpPath, ("{0}:{1}" -f $Server, $remoteDbDumpPath)) "DB-Transferdatei konnte nicht auf den Server kopiert werden."
+  }
+
+  Step "Serverabgleich auf dem Server ausfuehren"
+  $remoteScript | ssh $Server "bash -s"
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Serverabgleich ist fehlgeschlagen."
+  }
+
+  if ($localDumpPath -and (Test-Path $localDumpPath)) {
+    Remove-Item $localDumpPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Run-All() {
   Show-GitStatus
   Push-CurrentBranch
@@ -484,7 +758,7 @@ function Invoke-ConfiguredAction([string]$SelectedAction) {
       if (Test-IsGitRepository) {
         Show-GitStatus
       } else {
-        Step "Lokalen Git-Status pruefen"
+        Show-GitStatus -AllowMissingLocalGit
         Warn "Lokales Git-Repository nicht verfuegbar. Deploy verwendet nur den Remote-Stand fuer den angegebenen Branch oder Tag."
       }
       Invoke-ServerDeploy
@@ -492,6 +766,9 @@ function Invoke-ConfiguredAction([string]$SelectedAction) {
     "all" {
       Ensure-GitRepository
       Run-All
+    }
+    "server-sync" {
+      Invoke-ServerSync
     }
     "version" {
       Ensure-GitRepository
@@ -506,7 +783,13 @@ function Invoke-ConfiguredAction([string]$SelectedAction) {
 
 function Read-NonEmptyInput([string]$Prompt) {
   while ($true) {
-    $value = (Read-Host $Prompt).Trim()
+    $rawValue = Read-Host $Prompt
+    if ($null -eq $rawValue) {
+      Warn "Eingabe darf nicht leer sein."
+      continue
+    }
+
+    $value = $rawValue.Trim()
     if ($value.Length -gt 0) {
       return $value
     }
@@ -514,9 +797,79 @@ function Read-NonEmptyInput([string]$Prompt) {
   }
 }
 
+function Read-InputOrDefault([string]$Prompt, [string]$DefaultValue) {
+  $suffix = if ($DefaultValue.Trim().Length -gt 0) {
+    "$Prompt [$DefaultValue]"
+  } else {
+    $Prompt
+  }
+
+  $rawValue = Read-Host $suffix
+  if ($null -eq $rawValue) {
+    return $DefaultValue
+  }
+
+  $value = $rawValue.Trim()
+  if ($value.Length -gt 0) {
+    return $value
+  }
+
+  return $DefaultValue
+}
+
 function Read-YesNo([string]$Prompt) {
-  $answer = (Read-Host "$Prompt [y/N]").Trim().ToLowerInvariant()
+  $rawAnswer = Read-Host "$Prompt [y/N]"
+  if ($null -eq $rawAnswer) {
+    return $false
+  }
+
+  $answer = $rawAnswer.Trim().ToLowerInvariant()
   return $answer -eq "y" -or $answer -eq "yes" -or $answer -eq "j" -or $answer -eq "ja"
+}
+
+function Read-YesNoDefaultYes([string]$Prompt) {
+  $rawAnswer = Read-Host "$Prompt [Y/n]"
+  if ($null -eq $rawAnswer) {
+    return $true
+  }
+
+  $answer = $rawAnswer.Trim().ToLowerInvariant()
+  if ($answer.Length -eq 0) {
+    return $true
+  }
+
+  return -not ($answer -eq "n" -or $answer -eq "no" -or $answer -eq "nein")
+}
+
+function Commit-InteractiveLocalChanges() {
+  $statusLines = Get-WorkingTreeStatusLines
+  if ($statusLines.Count -eq 0) {
+    return
+  }
+
+  Step "Lokale Aenderungen vorbereiten"
+  Invoke-Checked "git" @("status", "--short", "--branch") "Git-Status konnte nicht angezeigt werden."
+
+  if (-not (Read-YesNoDefaultYes "Aenderungen jetzt adden und committen?")) {
+    Fail "Arbeitsverzeichnis ist nicht sauber. Vorgang abgebrochen."
+  }
+
+  $commitMessage = Read-NonEmptyInput "Commit-Message"
+  Invoke-Checked "git" @("add", ".") "git add ist fehlgeschlagen."
+  Invoke-Checked "git" @("commit", "-m", $commitMessage) "git commit ist fehlgeschlagen."
+}
+
+function Prepare-InteractiveGitAction([switch]$PushBeforeProceeding) {
+  Ensure-GitRepository
+  Commit-InteractiveLocalChanges
+
+  if ($PushBeforeProceeding -and (Get-AheadCount) -gt 0) {
+    Step "Lokalen Branch vorab nach GitHub pushen"
+    if (-not (Read-YesNoDefaultYes "Lokalen Branch jetzt nach GitHub pushen?")) {
+      Fail "Fuer diesen Deploy muss der aktuelle Branch zuerst nach GitHub gepusht werden."
+    }
+    Push-CurrentBranch
+  }
 }
 
 function Start-InteractiveMenu() {
@@ -538,10 +891,16 @@ function Start-InteractiveMenu() {
     Write-Host "4  Deploy Tag"
     Write-Host "5  Alles: Push + Deploy Branch"
     Write-Host "6  Version-Tag erstellen"
+    Write-Host "7  Serverabgleich - Push GitHub + SSH + Pull/Bootstrap + optional DB"
     Write-Host "20 Exit"
     Write-Host ""
 
-    $choice = (Read-Host "Select option").Trim()
+    $rawChoice = Read-Host "Select option"
+    if ($null -eq $rawChoice) {
+      return
+    }
+
+    $choice = $rawChoice.Trim()
     if ($choice -eq "20") {
       return
     }
@@ -557,7 +916,7 @@ function Start-InteractiveMenu() {
         }
         "2" {
           $script:Action = "push"
-          Ensure-GitRepository
+          Prepare-InteractiveGitAction
           Show-ScriptHeader "push" "branch" $(if ($Branch.Trim().Length -gt 0) { $Branch.Trim() } else { "(auto)" })
           Invoke-ConfiguredAction "push"
           Pause
@@ -565,7 +924,8 @@ function Start-InteractiveMenu() {
         "3" {
           $script:Action = "deploy"
           $script:Tag = ""
-          $script:Branch = Read-NonEmptyInput "Branch"
+          $script:Branch = Read-InputOrDefault "Branch" "main"
+          Prepare-InteractiveGitAction -PushBeforeProceeding
           $script:RunBackup = Read-YesNo "Backup vor Deploy ausfuehren?"
           $script:RunMigration = Read-YesNo "Migration ausfuehren?"
           $script:RunSeed = $false
@@ -600,9 +960,9 @@ function Start-InteractiveMenu() {
         }
         "5" {
           $script:Action = "all"
-          Ensure-GitRepository
           $script:Tag = ""
-          $script:Branch = Read-NonEmptyInput "Branch"
+          $script:Branch = Read-InputOrDefault "Branch" "main"
+          Prepare-InteractiveGitAction
           $script:RunBackup = Read-YesNo "Backup vor Deploy ausfuehren?"
           $script:RunMigration = Read-YesNo "Migration ausfuehren?"
           $script:RunSeed = $false
@@ -619,12 +979,38 @@ function Start-InteractiveMenu() {
         }
         "6" {
           $script:Action = "version"
-          Ensure-GitRepository
+          Prepare-InteractiveGitAction
           $script:Version = Read-NonEmptyInput "Version (z. B. v0.1.0)"
-          $script:VersionMessage = (Read-Host "Version-Message (leer = Standard)").Trim()
+          $rawVersionMessage = Read-Host "Version-Message (leer = Standard)"
+          $script:VersionMessage = if ($null -eq $rawVersionMessage) { "" } else { $rawVersionMessage.Trim() }
           Validate-Arguments
           Show-ScriptHeader "version" "branch" $(if ($Branch.Trim().Length -gt 0) { $Branch.Trim() } else { "(auto)" })
           Invoke-ConfiguredAction "version"
+          Pause
+        }
+        "7" {
+          $script:Action = "server-sync"
+          $script:Tag = ""
+          $script:Branch = Read-InputOrDefault "Branch fuer GitHub und Server" "main"
+          Prepare-InteractiveGitAction
+          $rawRemoteGitUrl = Read-Host "Remote Git URL (leer = origin)"
+          $script:RemoteGitUrl = if ($null -eq $rawRemoteGitUrl) { "" } else { $rawRemoteGitUrl.Trim() }
+          $script:RunBackup = $false
+          $script:RunMigration = Read-YesNo "Migration nach dem Abgleich ausfuehren?"
+          $script:RunSeed = $false
+          $script:ConfirmSeed = $false
+          if (Read-YesNo "Seed explizit ausfuehren?") {
+            $script:RunSeed = $true
+            $script:ConfirmSeed = Read-YesNo "Seed-Schutz bestaetigen?"
+          }
+          $script:SyncDatabase = Read-YesNo "Lokale Datenbank mit Inhalten auf den Server uebertragen?"
+          if ($SyncDatabase) {
+            $script:RunBackup = $true
+          }
+          $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach dem Abgleich ausfuehren?")
+          Validate-Arguments
+          Show-ScriptHeader "server-sync" "branch" $Branch
+          Invoke-ConfiguredAction "server-sync"
           Pause
         }
         default {

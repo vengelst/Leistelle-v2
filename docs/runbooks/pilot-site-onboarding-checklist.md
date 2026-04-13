@@ -44,7 +44,7 @@ Zweck: Pilotzugang ueber die oeffentliche Adresse sauber terminieren.
 
 - [ ] nginx-Konfiguration aus `deploy/nginx/leitstelle.vivahome.de.conf` auf Zielsystem uebernehmen
 - [ ] Frontend-Container lokal unter `127.0.0.1:4173` erreichbar machen
-- [ ] Backend lokal unter `127.0.0.1:8080` erreichbar machen
+- [ ] Backend lokal unter `127.0.0.1:18080` erreichbar machen
 - [ ] Zertifikat fuer `leitstelle.vivahome.de` bereitstellen
 - [ ] HTTP->HTTPS-Weiterleitung pruefen
 - [ ] `/api/`-Proxy pruefen
@@ -54,7 +54,7 @@ Zweck: Pilotzugang ueber die oeffentliche Adresse sauber terminieren.
 
 Zweck: Medienreferenzen und Grundsicherung fuer Pilotbetrieb betriebsfaehig machen.
 
-- [ ] Medienpfad unter `/srv/leitstelle/media` oder aequivalent bereitstellen
+- [ ] Medienpfad unter `/opt/leitstelle/media` oder aequivalent bereitstellen
 - [ ] `MEDIA_STORAGE_BASE_URL` zeigt auf `/media`
 - [ ] Relative `storageKey`-Pfade sind ueber Reverse Proxy erreichbar
 - [ ] Upload-/Gateway-Pfad schreibt in den vorgesehenen Medienbereich

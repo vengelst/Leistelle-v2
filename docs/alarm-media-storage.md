@@ -45,7 +45,7 @@ Fuer relative kanonische Keys wie `/alarms/2026/.../bild.jpg` kann der Pilotbetr
 
 - `MEDIA_STORAGE_TYPE=filesystem`
 - `MEDIA_STORAGE_BASE_URL=https://leitstelle.vivahome.de/media`
-- `MEDIA_STORAGE_LOCAL_PATH=/srv/leitstelle/media`
+- `MEDIA_STORAGE_LOCAL_PATH=/opt/leitstelle/media`
 
 Die bestehende Medienvorschau bleibt referenzbasiert. Wenn ein `storageKey` bereits eine vollstaendige HTTP(S)-URL ist, wird diese direkt verwendet. Wenn der Key relativ ist und `mediaStorage.baseUrl` gesetzt ist, erzeugt die Vorschau daraus eine aufloesbare URL wie:
 

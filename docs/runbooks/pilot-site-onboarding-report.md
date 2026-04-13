@@ -46,7 +46,7 @@ Kurzfazit: Service-Struktur und Compose-Healthchecks sind repo-seitig vorbereite
 Kurzfazit: nginx-Vorlage ist brauchbar, aber nicht live validiert.
 
 - **TEILWEISE**: `deploy/nginx/leitstelle.vivahome.de.conf` ist fuer den Pilot plausibel: HTTPS-Terminierung, `/api/`-Proxy, Frontend-Proxy auf `127.0.0.1:4173` und `/media/`-Alias sind vorhanden und passen zu den repo-seitigen Pfaden.
-- **ERFÜLLT**: Die Konfiguration referenziert `leitstelle.vivahome.de`, `127.0.0.1:8080`, `127.0.0.1:4173` und `/srv/leitstelle/media` konsistent mit der Doku.
+- **ERFÜLLT**: Die Konfiguration referenziert `leitstelle.vivahome.de`, `127.0.0.1:18080`, `127.0.0.1:4173` und `/opt/leitstelle/media` konsistent mit der Doku.
 - **NUR OPERATIV TESTBAR**: Zertifikatspfad, DNS, nginx-Reload und echte HTTP->HTTPS-Weiterleitung konnten im aktuellen Kontext nicht live getestet werden.
 - **NUR OPERATIV TESTBAR**: Oeffentliche Erreichbarkeit und Browsertest gegen den echten Host sind ausserhalb des Repos.
 

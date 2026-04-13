@@ -12,7 +12,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "55440:5432"
+      - "${POSTGRES_BIND_HOST:-127.0.0.1}:${POSTGRES_PUBLIC_PORT:-55440}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -45,7 +45,7 @@ services:
       ALARM_EXTERNAL_MEDIA_CORRELATION_TOLERANCE_HIKVISION_SECONDS: ${ALARM_EXTERNAL_MEDIA_CORRELATION_TOLERANCE_HIKVISION_SECONDS:-}
       ALARM_EXTERNAL_MEDIA_CORRELATION_TOLERANCE_AJAX_SECONDS: ${ALARM_EXTERNAL_MEDIA_CORRELATION_TOLERANCE_AJAX_SECONDS:-}
     ports:
-      - "8080:8080"
+      - "${BACKEND_BIND_HOST:-127.0.0.1}:${BACKEND_PUBLIC_PORT:-18080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
       interval: 15s
@@ -62,7 +62,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "4173:80"
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PUBLIC_PORT:-4173}:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
       interval: 15s

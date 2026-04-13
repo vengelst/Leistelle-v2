@@ -36,7 +36,7 @@ Der Medienpfad bleibt bewusst referenzbasiert:
 
 Empfohlener Pilotpfad:
 
-- lokaler oder gemounteter Medienpfad unter `/srv/leitstelle/media`
+- lokaler oder gemounteter Medienpfad unter `/opt/leitstelle/media`
 - nginx liefert diesen Pfad read-only unter `/media/` aus
 - der kanonische Key `/alarms/...` wird dadurch als `https://leitstelle.vivahome.de/media/alarms/...` erreichbar
 
@@ -51,7 +51,7 @@ Beispielkonfiguration:
 Die Annahme fuer den Pilot:
 
 - Frontend ueber den Compose-Container auf `127.0.0.1:4173`
-- Backend lokal auf `127.0.0.1:8080`
+- Backend lokal auf `127.0.0.1:18080`
 - TLS-Terminierung im nginx
 - API-Proxy fuer `/api/`
 - Frontend-Proxy fuer `/`
@@ -103,7 +103,7 @@ DATABASE_URL='postgres://...' BACKUP_DIR=/var/backups/leitstelle ./scripts/backu
 Zusaetzlich sichern:
 
 - PostgreSQL-Datenverzeichnis oder Volume
-- Medienpfad unter `/srv/leitstelle/media`
+- Medienpfad unter `/opt/leitstelle/media`
 - produktive `.env`-Datei in einem geschuetzten Secret-/Ops-Kontext
 
 Einfacher Restore-Hinweis:

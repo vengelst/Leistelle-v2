@@ -14,10 +14,10 @@ Der Server `leitstelle.vivahome.de` arbeitet im Pull-only-Modell:
 
 Empfohlene Pfade auf dem Server:
 
-- Repo-Checkout: `/srv/leitstelle/repo`
-- produktive Env-Datei: `/srv/leitstelle/repo/.env.production`
-- Medienpfad: `/srv/leitstelle/media`
-- Backup-Verzeichnis: `/srv/leitstelle/backups`
+- Repo-Checkout: `/opt/leitstelle`
+- produktive Env-Datei: `/opt/leitstelle/.env.production`
+- Medienpfad: `/opt/leitstelle/media`
+- Backup-Verzeichnis: `/opt/leitstelle/backups`
 - nginx-Konfiguration: `/etc/nginx/sites-available/leitstelle.vivahome.de.conf`
 - nginx-Symlink: `/etc/nginx/sites-enabled/leitstelle.vivahome.de.conf`
 
@@ -35,7 +35,7 @@ Empfohlene Pfade auf dem Server:
 - WireGuard-Keys
 - Backup-Dateien
 - produktive Datenbankdaten
-- Medieninhalte unter `/srv/leitstelle/media`
+- Medieninhalte unter `/opt/leitstelle/media`
 
 ## Pull-Deploy-Ablauf
 
@@ -53,7 +53,13 @@ Typischer Update-Weg:
    - optional Seed
    - `docker compose --env-file .env.production build`
    - `docker compose --env-file .env.production up -d`
-   - optional `curl -fsS http://127.0.0.1:8080/health`
+  - optional `curl -fsS http://127.0.0.1:18080/health`
+
+Lokale Hostports fuer den aktuellen Leitstelle-Pilot:
+
+- Frontend: `127.0.0.1:4173`
+- Backend: `127.0.0.1:18080`
+- PostgreSQL: `127.0.0.1:55440`
 
 Wichtig:
 
@@ -70,17 +76,17 @@ Wichtig:
    - `curl`
    - `pg_dump` bzw. PostgreSQL-Clienttools
 2. Zielpfade anlegen:
-   - `/srv/leitstelle/repo`
-   - `/srv/leitstelle/media`
-   - `/srv/leitstelle/backups`
-3. Repo von GitHub nach `/srv/leitstelle/repo` clonen.
+   - `/opt/leitstelle`
+   - `/opt/leitstelle/media`
+   - `/opt/leitstelle/backups`
+3. Repo von GitHub nach `/opt/leitstelle` clonen.
 4. `.env.production` im Repo-Wurzelverzeichnis auf dem Server anlegen.
 5. nginx-Konfiguration aus dem Repo nach `/etc/nginx/sites-available/` uebernehmen und aktivieren.
 6. Zertifikat bereitstellen.
 7. Ersten Start ausfuehren:
 
 ```sh
-cd /srv/leitstelle/repo
+cd /opt/leitstelle
 docker compose --env-file .env.production build
 docker compose --env-file .env.production run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js'
 docker compose --env-file .env.production up -d
@@ -91,7 +97,7 @@ docker compose --env-file .env.production up -d
 Fuer Updates bleibt der Server code-seitig unveraendert. Es wird nur der Repo-Stand aktualisiert und der Compose-Stack neu gebaut:
 
 ```sh
-cd /srv/leitstelle/repo
+cd /opt/leitstelle
 git pull --ff-only origin main
 docker compose --env-file .env.production build
 docker compose --env-file .env.production up -d
@@ -106,11 +112,13 @@ Das bestehende Skript `abgleich/leitstelle.ps1` unterstuetzt jetzt:
 - `-Action deploy`
 - `-Action all`
 - `-Action version`
+- `-Action server-sync`
 
 Wichtige Parameter:
 
 - `-Branch "main"`
 - `-Tag "v0.1.0"`
+- `-RemoteGitUrl "git@github.com:<owner>/Leitstelle-v2.git"`
 - `-Version "v0.1.0"`
 - `-VersionMessage "Pilot Release Standort 1"`
 - `-WhatIf`
@@ -118,6 +126,7 @@ Wichtige Parameter:
 - `-RunMigration`
 - `-RunSeed`
 - `-ConfirmSeed`
+- `-SyncDatabase`
 - `-SkipHealthCheck`
 
 Beispiele:
@@ -146,6 +155,12 @@ powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action deplo
 powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action deploy -Branch main -RunBackup -RunMigration
 
 powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action deploy -Branch main -RunSeed
+
+powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action server-sync -Branch main
+
+powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action server-sync -Branch main -SyncDatabase -RunMigration
+
+powershell -ExecutionPolicy Bypass -File .\abgleich\leitstelle.ps1 -Action server-sync -Branch main -RemoteGitUrl "git@github.com:<owner>/Leitstelle-v2.git" -WhatIf
 ```
 
 Warnung:
@@ -156,11 +171,14 @@ Warnung:
 - `-RunSeed` erfordert zusaetzlich `-ConfirmSeed`
 - der Standard-Deploy fuehrt keinen Seed aus
 - bei Tag-Deploy hat `-Tag` Vorrang vor `-Branch`
+- `-Action server-sync` ist fuer den Erstabgleich oder einen manuellen Vollabgleich gedacht: erst GitHub-Push, dann SSH auf den Server, initialer `git clone` falls das Repo noch fehlt, danach branchbasierter Pull und Compose-Start
+- beim ersten `server-sync` werden zusaetzlich die Standardpfade `/opt/leitstelle`, `/opt/leitstelle/media` und `/opt/leitstelle/backups` angelegt
+- `-SyncDatabase` erzeugt zusaetzlich lokal einen Dump der laufenden Compose-Datenbank, kopiert ihn auf den Server und stellt ihn dort nach vorherigem Server-Backup wieder her
 
 ## Pruefung nach Deploy
 
 - `docker compose ps`
-- `curl -fsS http://127.0.0.1:8080/health`
+- `curl -fsS http://127.0.0.1:18080/health`
 - `docker compose logs --tail=100 backend`
 - `docker compose logs --tail=100 worker`
 
@@ -174,7 +192,7 @@ Kein eigenes Rollback-System im Repo. Fuer einen kleinen, kontrollierten Ruecksp
 Beispiel:
 
 ```sh
-cd /srv/leitstelle/repo
+cd /opt/leitstelle
 git checkout <frueherer-commit-oder-tag>
 docker compose --env-file .env.production build
 docker compose --env-file .env.production up -d
