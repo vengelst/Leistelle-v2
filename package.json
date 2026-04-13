@@ -1,0 +1,31 @@
+{
+  "name": "leitstelle-v2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Foundation monorepo for the Leitstelle software.",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "workers/*"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "check": "tsc -b tsconfig.json",
+    "migrate": "npm run migrate -w @leitstelle/backend",
+    "seed": "npm run seed -w @leitstelle/backend",
+    "smoke:test": "npm run smoke:test -w @leitstelle/backend",
+    "test:frontend": "npm run test -w @leitstelle/frontend",
+    "test:worker": "npm run test -w @leitstelle/worker-runtime",
+    "dev:backend": "npm run dev -w @leitstelle/backend",
+    "dev:frontend": "npm run dev -w @leitstelle/frontend",
+    "dev:worker": "npm run dev -w @leitstelle/worker-runtime"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.20.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

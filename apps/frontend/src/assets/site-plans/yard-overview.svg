@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="Yard Uebersicht">
+  <defs>
+    <linearGradient id="ground" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f5efe3" />
+      <stop offset="100%" stop-color="#eadfca" />
+    </linearGradient>
+    <linearGradient id="building" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#d8e0e4" />
+      <stop offset="100%" stop-color="#b9c6cb" />
+    </linearGradient>
+  </defs>
+  <rect width="960" height="640" rx="36" fill="url(#ground)" />
+  <rect x="56" y="56" width="848" height="528" rx="28" fill="rgba(255,255,255,0.58)" stroke="rgba(29,42,47,0.12)" stroke-width="4" />
+  <rect x="118" y="118" width="300" height="158" rx="22" fill="url(#building)" stroke="#7b8f98" stroke-width="3" />
+  <rect x="488" y="116" width="248" height="164" rx="22" fill="url(#building)" stroke="#7b8f98" stroke-width="3" />
+  <rect x="198" y="360" width="560" height="144" rx="24" fill="rgba(54,95,112,0.12)" stroke="rgba(54,95,112,0.28)" stroke-width="3" />
+  <path d="M84 324 H876" stroke="rgba(29,42,47,0.16)" stroke-width="20" stroke-linecap="round" />
+  <path d="M474 92 V552" stroke="rgba(29,42,47,0.12)" stroke-width="12" stroke-dasharray="10 10" />
+  <text x="96" y="96" fill="#1d2a2f" font-family="Segoe UI, sans-serif" font-size="34" font-weight="700">Hamburg Hafen - Yard Uebersicht</text>
+  <text x="142" y="176" fill="#1d2a2f" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">Leitwarte / Zugang</text>
+  <text x="512" y="174" fill="#1d2a2f" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700">Lagerhalle</text>
+  <text x="390" y="436" fill="#1d2a2f" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700">Yard / Fahrweg</text>
+  <text x="610" y="560" fill="#56666b" font-family="Segoe UI, sans-serif" font-size="18">Planbild fuer M7d - Marker werden im Frontend ueberlagert.</text>
+</svg>

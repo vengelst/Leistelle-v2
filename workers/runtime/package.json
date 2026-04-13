@@ -1,0 +1,16 @@
+{
+  "name": "@leitstelle/worker-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@leitstelle/config": "0.1.0",
+    "@leitstelle/observability": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "npm run build && node dist/index.js"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/coding/q-tower/**)",
+      "Read(//c/coding/q-tower/backend/**)",
+      "Read(//c/Users/Ve/.claude/projects/c--coding-Leitstelle-v2/memory/**)",
+      "Bash(find . -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.next/*' -not -path '*/dist/*' -not -path '*/build/*' -type f -exec dirname {} \\\\;)"
+    ]
+  }
+}
