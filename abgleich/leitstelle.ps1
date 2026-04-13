@@ -563,6 +563,10 @@ docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/b
 
   $remoteScript = @"
 set -euo pipefail
+if [ ! -d '$ServerRepoPath/.git' ]; then
+  echo 'Server-Repository fehlt unter $ServerRepoPath. Fuer den Erstlauf bitte den Menuepunkt Serverabgleich oder -Action server-sync verwenden.' >&2
+  exit 1
+fi
 cd '$ServerRepoPath'
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo 'Server-Repository enthaelt lokale Aenderungen. Pull-only-Deploy bricht ab.' >&2
