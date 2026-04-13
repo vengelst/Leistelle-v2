@@ -1475,12 +1475,15 @@ button.secondary {
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.8fr);
   gap: 18px;
+  align-items: start;
+}
+
+.map-layout > * {
+  min-width: 0;
 }
 
 .map-stage {
-  position: relative;
-  min-height: clamp(560px, 62vh, 820px);
-  overflow: hidden;
+  padding: 14px;
   border-radius: 24px;
   border: 1px solid var(--border);
   background:
@@ -1488,10 +1491,20 @@ button.secondary {
     linear-gradient(180deg, var(--surface), var(--surface-soft));
 }
 
+.map-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
 .dach-map {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: clamp(560px, 62vh, 820px);
   display: block;
 }
 
@@ -1527,6 +1540,7 @@ button.secondary {
 .map-marker-layer {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .map-marker-button {
@@ -1540,6 +1554,8 @@ button.secondary {
   display: grid;
   justify-items: center;
   gap: 6px;
+  pointer-events: auto;
+  z-index: 1;
 }
 
 .map-marker-core {
@@ -1602,16 +1618,19 @@ button.secondary {
 
 .map-selection-panel {
   align-self: start;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .map-context-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .map-context-card {
   background: var(--panel-soft);
+  min-width: 0;
 }
 
 .map-context-card h4 {
@@ -1633,6 +1652,7 @@ button.secondary {
 
 .plan-workspace {
   margin-top: 10px;
+  min-width: 0;
 }
 
 .site-plan-select-button.selected {
@@ -1651,10 +1671,12 @@ button.secondary {
     linear-gradient(180deg, var(--surface), var(--surface-soft)),
     radial-gradient(circle at top right, rgba(155, 77, 47, 0.1), transparent 36%);
   overflow: auto;
+  min-width: 0;
 }
 
 .site-plan-viewport {
   overflow: auto;
+  min-width: 0;
 }
 
 .site-plan-surface {
@@ -1817,7 +1839,7 @@ button.secondary {
   }
 
   .map-stage,
-  .dach-map {
-    min-height: 420px;
+  .map-canvas {
+    min-height: 320px;
   }
 }

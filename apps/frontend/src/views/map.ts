@@ -37,39 +37,41 @@ export function renderMapSection(): string {
       </div>
       <div class="map-layout">
         <section class="map-stage" aria-label="DACH-Karte">
-          <svg class="dach-map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="DACH-Raum mit Standortmarkern">
-            <defs>
-              <linearGradient id="mapSurface" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stop-color="rgba(255,255,255,0.95)" />
-                <stop offset="100%" stop-color="rgba(238,230,214,0.9)" />
-              </linearGradient>
-            </defs>
-            <rect x="0" y="0" width="1000" height="700" rx="28" fill="url(#mapSurface)"></rect>
-            <g class="map-grid">
-              <path d="M120 110 H900" />
-              <path d="M120 240 H900" />
-              <path d="M120 370 H900" />
-              <path d="M120 500 H900" />
-              <path d="M120 630 H900" />
-              <path d="M180 80 V640" />
-              <path d="M360 80 V640" />
-              <path d="M540 80 V640" />
-              <path d="M720 80 V640" />
-              <path d="M900 80 V640" />
-            </g>
-            <g class="map-country-layer">
-              <path class="country germany" d="M430 120 L520 110 L610 150 L660 230 L640 310 L680 400 L640 500 L580 560 L500 540 L420 590 L350 560 L330 470 L280 410 L300 330 L340 250 L380 210 Z" />
-              <path class="country austria" d="M470 470 L560 450 L650 470 L710 500 L660 540 L570 560 L470 545 L410 520 Z" />
-              <path class="country switzerland" d="M330 470 L390 450 L450 465 L430 515 L360 520 L310 500 Z" />
-            </g>
-            <g class="map-label-layer">
-              <text x="455" y="280">DE</text>
-              <text x="560" y="525">AT</text>
-              <text x="350" y="500">CH</text>
-            </g>
-          </svg>
-          <div class="map-marker-layer">
-            ${markerCollection.markers.map((marker) => renderMapMarker(marker, selectedMarker?.siteId === marker.siteId)).join("")}
+          <div class="map-canvas">
+            <svg class="dach-map" viewBox="0 0 1000 700" preserveAspectRatio="none" role="img" aria-label="DACH-Raum mit Standortmarkern">
+              <defs>
+                <linearGradient id="mapSurface" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(255,255,255,0.95)" />
+                  <stop offset="100%" stop-color="rgba(238,230,214,0.9)" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="1000" height="700" rx="28" fill="url(#mapSurface)"></rect>
+              <g class="map-grid">
+                <path d="M100 90 H920" />
+                <path d="M100 220 H920" />
+                <path d="M100 350 H920" />
+                <path d="M100 480 H920" />
+                <path d="M100 610 H920" />
+                <path d="M180 70 V630" />
+                <path d="M350 70 V630" />
+                <path d="M520 70 V630" />
+                <path d="M690 70 V630" />
+                <path d="M860 70 V630" />
+              </g>
+              <g class="map-country-layer">
+                <path class="country germany" d="M410 70 L520 72 L616 115 L684 188 L668 268 L707 350 L660 452 L604 532 L520 585 L440 565 L372 602 L292 566 L254 478 L270 386 L305 287 L360 205 L387 121 Z" />
+                <path class="country austria" d="M428 488 L514 460 L634 475 L745 518 L670 556 L546 575 L430 562 L355 530 Z" />
+                <path class="country switzerland" d="M264 478 L345 458 L438 474 L422 523 L333 538 L252 516 Z" />
+              </g>
+              <g class="map-label-layer">
+                <text x="457" y="290">DE</text>
+                <text x="548" y="540">AT</text>
+                <text x="314" y="515">CH</text>
+              </g>
+            </svg>
+            <div class="map-marker-layer">
+              ${markerCollection.markers.map((marker) => renderMapMarker(marker, selectedMarker?.siteId === marker.siteId)).join("")}
+            </div>
           </div>
         </section>
         ${selectedMarker ? renderMapSelectionPanel(selectedMarker) : `<aside class="subcard stack"><p class="empty">Standortmarker waehlen, um Details zu sehen.</p></aside>`}
