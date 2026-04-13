@@ -1,4 +1,4 @@
-const apiBaseUrl = "http://127.0.0.1:8080";
+const apiBaseUrl = resolveApiBaseUrl();
 export const storageKey = "leitstelle.session.token";
 
 export async function apiRequest<TData>(path: string, init: RequestInit): Promise<TData> {
@@ -10,4 +10,17 @@ export async function apiRequest<TData>(path: string, init: RequestInit): Promis
   const payload = (await response.json()) as { data?: TData; detail?: string; title?: string };
   if (!response.ok || !payload.data) throw new Error(payload.detail ?? payload.title ?? "Request failed.");
   return payload.data;
+}
+
+function resolveApiBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return "http://127.0.0.1:8080";
+  }
+
+  const { hostname, origin, port } = window.location;
+  if ((hostname === "127.0.0.1" || hostname === "localhost") && port === "4173") {
+    return "http://127.0.0.1:8080";
+  }
+
+  return `${origin}/api`;
 }
