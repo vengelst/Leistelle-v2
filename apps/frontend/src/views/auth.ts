@@ -8,7 +8,21 @@ export function renderLoginSection(): string {
   return `
     <form id="login-form" class="stack" data-ui-preserve-form="true">
       <label class="field"><span>Benutzername oder E-Mail</span><input name="identifier" autocomplete="username" required /></label>
-      <label class="field"><span>Passwort</span><input type="password" name="password" autocomplete="current-password" required /></label>
+      <label class="field">
+        <span>Passwort</span>
+        <div class="password-field">
+          <input id="login-password-input" type="password" name="password" autocomplete="current-password" required />
+          <button
+            type="button"
+            id="login-password-toggle-button"
+            class="secondary password-toggle-button"
+            data-password-visible="false"
+            aria-controls="login-password-input"
+            aria-label="Passwort anzeigen"
+            aria-pressed="false"
+          >Anzeigen</button>
+        </div>
+      </label>
       <button type="submit">Anmelden</button>
     </form>
     <p class="hint">Lokaler Login ueber die bestehende Identity-Schicht. Bootstrap-Logins bleiben fuer Entwicklung verfuegbar.</p>

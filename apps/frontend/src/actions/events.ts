@@ -460,6 +460,7 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());
   document.querySelector<HTMLFormElement>("#login-form")?.addEventListener("submit", handlers.handleLogin);
+  document.querySelector<HTMLButtonElement>("#login-password-toggle-button")?.addEventListener("click", toggleLoginPasswordVisibility);
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".logout-button"))) {
     button.addEventListener("click", () => void handlers.handleLogout());
   }
@@ -727,4 +728,20 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLFormElement>("#alarm-source-mapping-form")?.addEventListener("submit", handlers.handleAlarmSourceMappingSubmit);
   document.querySelector<HTMLFormElement>("#plan-form")?.addEventListener("submit", handlers.handlePlanSubmit);
   document.querySelector<HTMLFormElement>("#workflow-profile-form")?.addEventListener("submit", handlers.handleWorkflowProfileSubmit);
+}
+
+function toggleLoginPasswordVisibility(): void {
+  const passwordInput = document.querySelector<HTMLInputElement>("#login-password-input");
+  const toggleButton = document.querySelector<HTMLButtonElement>("#login-password-toggle-button");
+  if (!passwordInput || !toggleButton) {
+    return;
+  }
+
+  const nextVisible = passwordInput.type === "password";
+  passwordInput.type = nextVisible ? "text" : "password";
+  toggleButton.dataset.passwordVisible = nextVisible ? "true" : "false";
+  toggleButton.setAttribute("aria-pressed", nextVisible ? "true" : "false");
+  toggleButton.setAttribute("aria-label", nextVisible ? "Passwort verbergen" : "Passwort anzeigen");
+  toggleButton.textContent = nextVisible ? "Verbergen" : "Anzeigen";
+  passwordInput.focus();
 }

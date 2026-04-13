@@ -728,6 +728,22 @@ a.button-link {
   gap: 8px;
 }
 
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.password-field input {
+  min-width: 0;
+}
+
+.password-toggle-button {
+  min-width: 118px;
+  white-space: nowrap;
+}
+
 .field span,
 .facts dt,
 .hint,

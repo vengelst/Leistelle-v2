@@ -645,7 +645,7 @@ echo 'Optionale Datenbankschritte.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --remove-orphans
+docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans
 docker compose ps
 $remoteHealthCommand
 echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
@@ -803,7 +803,7 @@ echo 'Optionale Datenbankschritte nach dem Abgleich.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --remove-orphans
+docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans
 docker compose ps
 $remoteHealthCommand
 echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
