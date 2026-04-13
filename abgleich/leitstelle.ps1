@@ -75,7 +75,26 @@ function Get-ParentUnixPath([string]$Path) {
   return $normalized.Substring(0, $lastSlash)
 }
 
+function Get-VersionLabel() {
+  if (-not (Test-IsGitRepository)) {
+    return "n/a"
+  }
+
+  $exactTag = Get-GitOutput @("describe", "--tags", "--exact-match")
+  if ($exactTag) {
+    return $exactTag
+  }
+
+  $latestTag = Get-GitOutput @("describe", "--tags", "--abbrev=0")
+  if ($latestTag) {
+    return "$latestTag (HEAD abweichend)"
+  }
+
+  return "kein Tag"
+}
+
 function Show-ScriptHeader([string]$ResolvedAction, [string]$ResolvedTargetType, [string]$ResolvedTargetName) {
+  $versionLabel = Get-VersionLabel
   Write-Host ""
   Write-Host "========================================" -ForegroundColor Cyan
   Write-Host "   Leitstelle Abgleich / Deploy" -ForegroundColor Cyan
@@ -83,6 +102,7 @@ function Show-ScriptHeader([string]$ResolvedAction, [string]$ResolvedTargetType,
   Write-Host ("   Ziel   : {0} = {1}" -f $ResolvedTargetType, $ResolvedTargetName) -ForegroundColor DarkGray
   Write-Host ("   Server : {0}" -f $Server) -ForegroundColor DarkGray
   Write-Host ("   Repo   : {0}" -f $repoRoot) -ForegroundColor DarkGray
+  Write-Host ("   Version: {0}" -f $versionLabel) -ForegroundColor DarkGray
   Write-Host "========================================" -ForegroundColor Cyan
   Write-Host ""
 }
@@ -877,6 +897,7 @@ function Start-InteractiveMenu() {
   while ($true) {
     Clear-Host
     $gitRepoStatus = if (Test-IsGitRepository) { "ja" } else { "nein" }
+    $versionLabel = Get-VersionLabel
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host "      LEITSTELLE OPERATIONS MENU" -ForegroundColor Cyan
@@ -885,6 +906,7 @@ function Start-InteractiveMenu() {
     Write-Host ("Repo-Path   : {0}" -f $ServerRepoPath)
     Write-Host ("Compose Env : {0}" -f $ComposeEnvFile)
     Write-Host ("Git-Repo    : {0}" -f $gitRepoStatus)
+    Write-Host ("Version     : {0}" -f $versionLabel)
     Write-Host ""
     Write-Host "1  Git Status anzeigen"
     Write-Host "2  Git Push aktueller Branch"
