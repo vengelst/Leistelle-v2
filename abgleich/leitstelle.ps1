@@ -421,6 +421,28 @@ function Wait-ForLocalDatabaseReady() {
   Fail "Lokale Datenbank ist nicht rechtzeitig bereit geworden."
 }
 
+function Get-LocalDatabaseUserCount() {
+  $result = Invoke-Captured "docker" (Get-LocalComposeArguments @(
+    "exec",
+    "-T",
+    "db",
+    "sh",
+    "-lc",
+    'export PGPASSWORD="$POSTGRES_PASSWORD"; psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -A -c "select count(*) from users;"'
+  ))
+
+  if ($result.ExitCode -ne 0) {
+    Fail "Benutzeranzahl der lokalen Datenbank konnte nicht ermittelt werden."
+  }
+
+  $value = $result.StdOut.Trim()
+  if ($value.Length -eq 0) {
+    Fail "Benutzeranzahl der lokalen Datenbank ist leer. Bitte lokale DB-Verbindung pruefen."
+  }
+
+  return [int]$value
+}
+
 function New-LocalDatabaseTransferDump() {
   $localDumpPath = Get-LocalDatabaseDumpPath
   $containerDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
@@ -682,7 +704,9 @@ function Invoke-ServerSync() {
   $remoteRepoParent = Get-ParentUnixPath $ServerRepoPath
   $remoteBootstrapClonePath = "/tmp/leitstelle-bootstrap-clone"
   $remoteDbDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
+  $remoteDbContainerDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
   $localDumpPath = $null
+  $localUserCount = 0
 
   Step "Serverabgleich vorbereiten"
   Write-Info ("Branch: {0}" -f $targetBranch)
@@ -696,6 +720,8 @@ function Invoke-ServerSync() {
 
   if ($SyncDatabase) {
     $localDumpPath = New-LocalDatabaseTransferDump
+    $localUserCount = Get-LocalDatabaseUserCount
+    Write-Info ("Lokale Benutzer im Transfer-Dump: {0}" -f $localUserCount)
   }
 
   $remoteHealthCommand = if ($SkipHealthCheck) {
@@ -741,9 +767,27 @@ for i in `$(seq 1 30); do
   fi
   sleep 2
 done
+DB_CONTAINER_ID=`$(docker compose --env-file '$ComposeEnvFile' ps -q db)
+if [ -z "`$DB_CONTAINER_ID" ]; then
+  echo '[db] DB-Container-ID konnte fuer den Restore nicht ermittelt werden.' >&2
+  exit 1
+fi
+echo '[db] Transferdatei wird in den DB-Container kopiert.'
+docker cp '$remoteDbDumpPath' "`$DB_CONTAINER_ID:$remoteDbContainerDumpPath"
 echo '[db] Ziel-Datenbank wird ersetzt.'
 docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"'
-gzip -dc '$remoteDbDumpPath' | docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1'
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; gzip -dc "$remoteDbContainerDumpPath" | psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1'
+ACTUAL_USER_COUNT=`$(docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -t -A -c "select count(*) from users;"' | tr -d '[:space:]')
+if [ -z "`$ACTUAL_USER_COUNT" ]; then
+  echo '[db] Benutzeranzahl nach Restore konnte nicht ermittelt werden.' >&2
+  exit 1
+fi
+echo "[db] Benutzer nach Restore: `$ACTUAL_USER_COUNT (Quelle: $localUserCount)"
+if [ "$localUserCount" -gt 0 ] && [ "`$ACTUAL_USER_COUNT" -eq 0 ]; then
+  echo '[db] Restore hat keine Benutzer auf dem Server hinterlassen, obwohl die Quelle Benutzer enthielt.' >&2
+  exit 1
+fi
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'rm -f "$remoteDbContainerDumpPath"'
 rm -f '$remoteDbDumpPath'
 "@
   } else {
