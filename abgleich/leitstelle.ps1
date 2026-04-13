@@ -557,7 +557,19 @@ if [ ! -f './scripts/backup-postgres.sh' ]; then
   echo 'Backup-Skript ./scripts/backup-postgres.sh fehlt.' >&2
   exit 1
 fi
+if [ ! -f '$ComposeEnvFile' ]; then
+  echo 'Env-Datei $ComposeEnvFile fehlt.' >&2
+  exit 1
+fi
 echo 'Backup wird vor dem Deploy ausgefuehrt.'
+set -a
+. './$ComposeEnvFile'
+set +a
+export PGHOST='127.0.0.1'
+export PGPORT="`${POSTGRES_PUBLIC_PORT:-55440}"
+export PGUSER="`$POSTGRES_USER"
+export PGPASSWORD="`$POSTGRES_PASSWORD"
+export PGDATABASE="`$POSTGRES_DB"
 BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
 "@
   } else {
@@ -669,8 +681,24 @@ if [ ! -f './scripts/backup-postgres.sh' ]; then
   echo 'Backup-Skript ./scripts/backup-postgres.sh fehlt.' >&2
   exit 1
 fi
+if [ ! -f '$ComposeEnvFile' ]; then
+  echo 'Env-Datei $ComposeEnvFile fehlt.' >&2
+  exit 1
+fi
 echo '[db] Sicherung der Server-Datenbank vor Restore.'
-BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
+set -a
+. './$ComposeEnvFile'
+set +a
+if PGPASSWORD="`$POSTGRES_PASSWORD" pg_isready -h 127.0.0.1 -p "`${POSTGRES_PUBLIC_PORT:-55440}" -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1; then
+  export PGHOST='127.0.0.1'
+  export PGPORT="`${POSTGRES_PUBLIC_PORT:-55440}"
+  export PGUSER="`$POSTGRES_USER"
+  export PGPASSWORD="`$POSTGRES_PASSWORD"
+  export PGDATABASE="`$POSTGRES_DB"
+  BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
+else
+  echo '[db] Keine erreichbare bestehende Server-Datenbank gefunden. Backup wird fuer den Erstlauf uebersprungen.'
+fi
 echo '[db] Starte DB-Container fuer Restore.'
 docker compose --env-file '$ComposeEnvFile' up -d db
 for i in `$(seq 1 30); do
