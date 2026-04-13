@@ -357,17 +357,35 @@ function Get-LocalDatabaseDumpPath() {
   return Join-Path ([System.IO.Path]::GetTempPath()) "leitstelle-db-transfer.sql.gz"
 }
 
+function Get-LocalComposeEnvFile() {
+  $localEnvPath = Join-Path $repoRoot ".env"
+  if (Test-Path $localEnvPath) {
+    return $localEnvPath
+  }
+
+  $exampleEnvPath = Join-Path $repoRoot ".env.example"
+  if (Test-Path $exampleEnvPath) {
+    return $exampleEnvPath
+  }
+
+  Fail "Weder .env noch .env.example wurden gefunden. Lokaler DB-Transfer kann nicht vorbereitet werden."
+}
+
+function Get-LocalComposeArguments([string[]]$ComposeArguments) {
+  $envFile = Get-LocalComposeEnvFile
+  return @("compose", "--env-file", $envFile) + $ComposeArguments
+}
+
 function Wait-ForLocalDatabaseReady() {
   for ($attempt = 1; $attempt -le 30; $attempt++) {
-    $result = Invoke-Captured "docker" @(
-      "compose",
+    $result = Invoke-Captured "docker" (Get-LocalComposeArguments @(
       "exec",
       "-T",
       "db",
       "sh",
       "-lc",
       'export PGPASSWORD="$POSTGRES_PASSWORD"; pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1'
-    )
+    ))
 
     if ($result.ExitCode -eq 0) {
       return
@@ -388,26 +406,26 @@ function New-LocalDatabaseTransferDump() {
   if (Is-DryRun) {
     Write-WhatIf "Wuerde den lokalen DB-Container starten, einen Dump erzeugen und als Transferdatei vorbereiten."
     Write-Info "Lokale Befehle:"
-    Write-Host "docker compose up -d db" -ForegroundColor DarkGray
-    Write-Host 'docker compose exec -T db sh -lc ''export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz''' -ForegroundColor DarkGray
+    $envFile = Get-LocalComposeEnvFile
+    Write-Host ("docker compose --env-file ""{0}"" up -d db" -f $envFile) -ForegroundColor DarkGray
+    Write-Host ("docker compose --env-file ""{0}"" exec -T db sh -lc 'export PGPASSWORD=""`$POSTGRES_PASSWORD""; pg_dump -U ""`$POSTGRES_USER"" --format=plain --no-owner --no-privileges ""`$POSTGRES_DB"" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz'" -f $envFile) -ForegroundColor DarkGray
     Write-Host ("docker cp <db-container>:{0} ""{1}""" -f $containerDumpPath, $localDumpPath) -ForegroundColor DarkGray
     return $localDumpPath
   }
 
-  Invoke-Checked "docker" @("compose", "up", "-d", "db") "Lokaler DB-Container konnte nicht gestartet werden."
+  Invoke-Checked "docker" (Get-LocalComposeArguments @("up", "-d", "db")) "Lokaler DB-Container konnte nicht gestartet werden."
   Wait-ForLocalDatabaseReady
 
-  Invoke-Checked "docker" @(
-    "compose",
+  Invoke-Checked "docker" (Get-LocalComposeArguments @(
     "exec",
     "-T",
     "db",
     "sh",
     "-lc",
     'export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz'
-  ) "Lokaler DB-Dump konnte nicht erzeugt werden."
+  )) "Lokaler DB-Dump konnte nicht erzeugt werden."
 
-  $containerIdResult = Invoke-Captured "docker" @("compose", "ps", "-q", "db")
+  $containerIdResult = Invoke-Captured "docker" (Get-LocalComposeArguments @("ps", "-q", "db"))
   if ($containerIdResult.ExitCode -ne 0 -or -not $containerIdResult.StdOut) {
     Fail "Lokaler DB-Container konnte nicht ermittelt werden."
   }
@@ -417,7 +435,7 @@ function New-LocalDatabaseTransferDump() {
   }
 
   Invoke-Checked "docker" @("cp", ("{0}:{1}" -f $containerIdResult.StdOut, $containerDumpPath), $localDumpPath) "Lokaler DB-Dump konnte nicht kopiert werden."
-  Invoke-Captured "docker" @("compose", "exec", "-T", "db", "rm", "-f", $containerDumpPath) | Out-Null
+  Invoke-Captured "docker" (Get-LocalComposeArguments @("exec", "-T", "db", "rm", "-f", $containerDumpPath)) | Out-Null
 
   Write-Info ("Transfer-Dump bereit: {0}" -f $localDumpPath)
   return $localDumpPath
@@ -737,8 +755,9 @@ echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
       Write-Host ("git push -u origin {0}" -f $targetBranch) -ForegroundColor DarkGray
     }
     if ($SyncDatabase) {
-      Write-Host "docker compose up -d db" -ForegroundColor DarkGray
-      Write-Host 'docker compose exec -T db sh -lc ''export PGPASSWORD="$POSTGRES_PASSWORD"; pg_dump -U "$POSTGRES_USER" --format=plain --no-owner --no-privileges "$POSTGRES_DB" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz''' -ForegroundColor DarkGray
+      $envFile = Get-LocalComposeEnvFile
+      Write-Host ("docker compose --env-file ""{0}"" up -d db" -f $envFile) -ForegroundColor DarkGray
+      Write-Host ("docker compose --env-file ""{0}"" exec -T db sh -lc 'export PGPASSWORD=""`$POSTGRES_PASSWORD""; pg_dump -U ""`$POSTGRES_USER"" --format=plain --no-owner --no-privileges ""`$POSTGRES_DB"" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz'" -f $envFile) -ForegroundColor DarkGray
       Write-Host ("scp ""{0}"" ""{1}:{2}""" -f (Get-LocalDatabaseDumpPath), $Server, $remoteDbDumpPath) -ForegroundColor DarkGray
     }
     Write-Info "Remote-Befehle auf dem Server waeren:"
