@@ -225,7 +225,7 @@ function Get-HeadCommit() {
 }
 
 function Assert-CleanWorkingTree() {
-  $statusLines = Get-WorkingTreeStatusLines
+  $statusLines = @(Get-WorkingTreeStatusLines)
   if ($statusLines.Count -gt 0) {
     Fail "Arbeitsverzeichnis ist nicht sauber. Bitte erst committen oder aufraeumen."
   }
@@ -238,10 +238,11 @@ function Get-WorkingTreeStatusLines() {
   }
 
   if (-not $result.StdOut) {
-    return @()
+    return [string[]]@()
   }
 
-  return @($result.StdOut -split "`r?`n" | Where-Object { $_.Trim().Length -gt 0 })
+  [string[]]$lines = @($result.StdOut -split "`r?`n" | Where-Object { $_.Trim().Length -gt 0 })
+  return $lines
 }
 
 function Assert-NoUnpushedCommits() {
@@ -842,7 +843,7 @@ function Read-YesNoDefaultYes([string]$Prompt) {
 }
 
 function Commit-InteractiveLocalChanges() {
-  $statusLines = Get-WorkingTreeStatusLines
+  $statusLines = @(Get-WorkingTreeStatusLines)
   if ($statusLines.Count -eq 0) {
     return
   }
