@@ -639,13 +639,13 @@ $remoteCheckoutCommand
 TARGET_COMMIT=`$(git rev-parse --short HEAD)
 echo "Deploy-Ziel: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
 $remoteBackupCommand
-echo 'Compose-Build startet.'
-docker compose --env-file '$ComposeEnvFile' build
+echo 'App-Services werden ohne Build-Cache neu gebaut.'
+docker compose --env-file '$ComposeEnvFile' build --pull --no-cache backend frontend worker
 echo 'Optionale Datenbankschritte.'
 $remoteMigrationCommand
 $remoteSeedCommand
-echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans
+echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
+docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
 docker compose ps
 $remoteHealthCommand
 echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
@@ -797,13 +797,13 @@ git pull --ff-only origin '$targetBranch'
 TARGET_COMMIT=`$(git rev-parse --short HEAD)
 echo "Server-Ziel: branch $targetBranch (`$TARGET_COMMIT)"
 $remoteRestoreCommand
-echo 'Compose-Build startet.'
-docker compose --env-file '$ComposeEnvFile' build
+echo 'App-Services werden ohne Build-Cache neu gebaut.'
+docker compose --env-file '$ComposeEnvFile' build --pull --no-cache backend frontend worker
 echo 'Optionale Datenbankschritte nach dem Abgleich.'
 $remoteMigrationCommand
 $remoteSeedCommand
-echo 'Compose-Stack wird gestartet oder aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans
+echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
+docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
 docker compose ps
 $remoteHealthCommand
 echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
