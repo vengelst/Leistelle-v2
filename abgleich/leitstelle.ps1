@@ -565,6 +565,7 @@ echo 'Backup wird vor dem Deploy ausgefuehrt.'
 set -a
 . './$ComposeEnvFile'
 set +a
+unset DATABASE_URL
 export PGHOST='127.0.0.1'
 export PGPORT="`${POSTGRES_PUBLIC_PORT:-55440}"
 export PGUSER="`$POSTGRES_USER"
@@ -690,6 +691,7 @@ set -a
 . './$ComposeEnvFile'
 set +a
 if PGPASSWORD="`$POSTGRES_PASSWORD" pg_isready -h 127.0.0.1 -p "`${POSTGRES_PUBLIC_PORT:-55440}" -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1; then
+  unset DATABASE_URL
   export PGHOST='127.0.0.1'
   export PGPORT="`${POSTGRES_PUBLIC_PORT:-55440}"
   export PGUSER="`$POSTGRES_USER"

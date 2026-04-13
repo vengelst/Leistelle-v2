@@ -7,9 +7,7 @@ OUTPUT_FILE="${BACKUP_DIR}/leitstelle-db-${TIMESTAMP}.sql.gz"
 
 mkdir -p "${BACKUP_DIR}"
 
-if [ -n "${DATABASE_URL:-}" ]; then
-  pg_dump "${DATABASE_URL}" --format=plain --no-owner --no-privileges | gzip -9 > "${OUTPUT_FILE}"
-else
+if [ -n "${PGHOST:-}" ]; then
   : "${PGHOST:?PGHOST ist nicht gesetzt.}"
   : "${PGPORT:?PGPORT ist nicht gesetzt.}"
   : "${PGUSER:?PGUSER ist nicht gesetzt.}"
@@ -23,6 +21,11 @@ else
     --format=plain \
     --no-owner \
     --no-privileges | gzip -9 > "${OUTPUT_FILE}"
+elif [ -n "${DATABASE_URL:-}" ]; then
+  pg_dump "${DATABASE_URL}" --format=plain --no-owner --no-privileges | gzip -9 > "${OUTPUT_FILE}"
+else
+  echo "Weder PGHOST noch DATABASE_URL sind gesetzt." >&2
+  exit 1
 fi
 
 echo "Backup geschrieben: ${OUTPUT_FILE}"
