@@ -1027,6 +1027,56 @@ function Prepare-InteractiveGitAction([switch]$PushBeforeProceeding) {
   }
 }
 
+function Get-InteractiveScriptHost() {
+  $pwshCommand = Get-Command "pwsh" -ErrorAction SilentlyContinue
+  if ($pwshCommand) {
+    return $pwshCommand.Source
+  }
+
+  return (Get-Command "powershell" -ErrorAction Stop).Source
+}
+
+function Invoke-ScriptSubprocess([string]$ResolvedAction, [hashtable]$AdditionalParameters) {
+  $hostPath = Get-InteractiveScriptHost
+  $arguments = @(
+    "-ExecutionPolicy", "Bypass",
+    "-File", $PSCommandPath,
+    "-Action", $ResolvedAction,
+    "-Server", $Server,
+    "-ServerRepoPath", $ServerRepoPath,
+    "-ComposeEnvFile", $ComposeEnvFile,
+    "-HealthUrl", $HealthUrl,
+    "-BackupDir", $BackupDir
+  )
+
+  foreach ($key in $AdditionalParameters.Keys) {
+    $value = $AdditionalParameters[$key]
+    if ($value -is [bool]) {
+      if ($value) {
+        $arguments += "-$key"
+      }
+      continue
+    }
+
+    if ($null -eq $value) {
+      continue
+    }
+
+    $text = [string]$value
+    if ($text.Trim().Length -eq 0) {
+      continue
+    }
+
+    $arguments += "-$key"
+    $arguments += $text
+  }
+
+  & $hostPath @arguments
+  if ($LASTEXITCODE -ne 0) {
+    Fail ("Unterprozess fuer Action '{0}' ist fehlgeschlagen." -f $ResolvedAction)
+  }
+}
+
 function Start-InteractiveMenu() {
   while ($true) {
     Clear-Host
@@ -1065,21 +1115,17 @@ function Start-InteractiveMenu() {
     try {
       switch ($choice) {
         "1" {
-          $script:Action = "check"
           Ensure-GitRepository
-          Show-ScriptHeader "check" "branch" $(if ($Branch.Trim().Length -gt 0) { $Branch.Trim() } else { "(auto)" })
-          Invoke-ConfiguredAction "check"
+          Invoke-ScriptSubprocess "check" @{}
           Pause
         }
         "2" {
-          $script:Action = "push"
+          $script:Branch = ""
           Prepare-InteractiveGitAction
-          Show-ScriptHeader "push" "branch" $(if ($Branch.Trim().Length -gt 0) { $Branch.Trim() } else { "(auto)" })
-          Invoke-ConfiguredAction "push"
+          Invoke-ScriptSubprocess "push" @{}
           Pause
         }
         "3" {
-          $script:Action = "deploy"
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch" "main"
           Prepare-InteractiveGitAction -PushBeforeProceeding
@@ -1093,12 +1139,17 @@ function Start-InteractiveMenu() {
           }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach Deploy ausfuehren?")
           Validate-Arguments
-          Show-ScriptHeader "deploy" "branch" $Branch
-          Invoke-ConfiguredAction "deploy"
+          Invoke-ScriptSubprocess "deploy" @{
+            Branch = $Branch
+            RunBackup = [bool]$RunBackup
+            RunMigration = [bool]$RunMigration
+            RunSeed = [bool]$RunSeed
+            ConfirmSeed = [bool]$ConfirmSeed
+            SkipHealthCheck = [bool]$SkipHealthCheck
+          }
           Pause
         }
         "4" {
-          $script:Action = "deploy"
           $script:Branch = ""
           $script:Tag = Read-NonEmptyInput "Tag"
           $script:RunBackup = Read-YesNo "Backup vor Deploy ausfuehren?"
@@ -1111,12 +1162,17 @@ function Start-InteractiveMenu() {
           }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach Deploy ausfuehren?")
           Validate-Arguments
-          Show-ScriptHeader "deploy" "tag" $Tag
-          Invoke-ConfiguredAction "deploy"
+          Invoke-ScriptSubprocess "deploy" @{
+            Tag = $Tag
+            RunBackup = [bool]$RunBackup
+            RunMigration = [bool]$RunMigration
+            RunSeed = [bool]$RunSeed
+            ConfirmSeed = [bool]$ConfirmSeed
+            SkipHealthCheck = [bool]$SkipHealthCheck
+          }
           Pause
         }
         "5" {
-          $script:Action = "all"
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch" "main"
           Prepare-InteractiveGitAction
@@ -1130,23 +1186,30 @@ function Start-InteractiveMenu() {
           }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach Deploy ausfuehren?")
           Validate-Arguments
-          Show-ScriptHeader "all" "branch" $Branch
-          Invoke-ConfiguredAction "all"
+          Invoke-ScriptSubprocess "all" @{
+            Branch = $Branch
+            RunBackup = [bool]$RunBackup
+            RunMigration = [bool]$RunMigration
+            RunSeed = [bool]$RunSeed
+            ConfirmSeed = [bool]$ConfirmSeed
+            SkipHealthCheck = [bool]$SkipHealthCheck
+          }
           Pause
         }
         "6" {
-          $script:Action = "version"
+          $script:Branch = ""
           Prepare-InteractiveGitAction
           $script:Version = Read-NonEmptyInput "Version (z. B. v0.1.0)"
           $rawVersionMessage = Read-Host "Version-Message (leer = Standard)"
           $script:VersionMessage = if ($null -eq $rawVersionMessage) { "" } else { $rawVersionMessage.Trim() }
           Validate-Arguments
-          Show-ScriptHeader "version" "branch" $(if ($Branch.Trim().Length -gt 0) { $Branch.Trim() } else { "(auto)" })
-          Invoke-ConfiguredAction "version"
+          Invoke-ScriptSubprocess "version" @{
+            Version = $Version
+            VersionMessage = $VersionMessage
+          }
           Pause
         }
         "7" {
-          $script:Action = "server-sync"
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch fuer GitHub und Server" "main"
           Prepare-InteractiveGitAction
@@ -1166,8 +1229,16 @@ function Start-InteractiveMenu() {
           }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach dem Abgleich ausfuehren?")
           Validate-Arguments
-          Show-ScriptHeader "server-sync" "branch" $Branch
-          Invoke-ConfiguredAction "server-sync"
+          Invoke-ScriptSubprocess "server-sync" @{
+            Branch = $Branch
+            RemoteGitUrl = $RemoteGitUrl
+            RunBackup = [bool]$RunBackup
+            RunMigration = [bool]$RunMigration
+            RunSeed = [bool]$RunSeed
+            ConfirmSeed = [bool]$ConfirmSeed
+            SyncDatabase = [bool]$SyncDatabase
+            SkipHealthCheck = [bool]$SkipHealthCheck
+          }
           Pause
         }
         default {
