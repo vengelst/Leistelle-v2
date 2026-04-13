@@ -627,7 +627,7 @@ BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
   }
 
   $remoteMigrationCommand = if ($RunMigration) {
-    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js'"
+    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
   } else {
     "echo 'Keine Migration angefordert.'"
   }
@@ -635,7 +635,7 @@ BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js'
+docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
@@ -762,7 +762,7 @@ fi
 echo '[db] Starte DB-Container fuer Restore.'
 docker compose --env-file '$ComposeEnvFile' up -d db
 for i in `$(seq 1 30); do
-  if docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; pg_isready -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1'; then
+  if docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; pg_isready -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1' </dev/null; then
     break
   fi
   sleep 2
@@ -775,9 +775,9 @@ fi
 echo '[db] Transferdatei wird in den DB-Container kopiert.'
 docker cp '$remoteDbDumpPath' "`$DB_CONTAINER_ID:$remoteDbContainerDumpPath"
 echo '[db] Ziel-Datenbank wird ersetzt.'
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"'
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; gzip -dc "$remoteDbContainerDumpPath" | psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1'
-ACTUAL_USER_COUNT=`$(docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -t -A -c "select count(*) from users;"' | tr -d '[:space:]')
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"' </dev/null
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; gzip -dc "$remoteDbContainerDumpPath" | psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1' </dev/null
+ACTUAL_USER_COUNT=`$(docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -t -A -c "select count(*) from users;"' </dev/null | tr -d '[:space:]')
 if [ -z "`$ACTUAL_USER_COUNT" ]; then
   echo '[db] Benutzeranzahl nach Restore konnte nicht ermittelt werden.' >&2
   exit 1
@@ -787,7 +787,7 @@ if [ "$localUserCount" -gt 0 ] && [ "`$ACTUAL_USER_COUNT" -eq 0 ]; then
   echo '[db] Restore hat keine Benutzer auf dem Server hinterlassen, obwohl die Quelle Benutzer enthielt.' >&2
   exit 1
 fi
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'rm -f "$remoteDbContainerDumpPath"'
+docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'rm -f "$remoteDbContainerDumpPath"' </dev/null
 rm -f '$remoteDbDumpPath'
 "@
   } else {
@@ -795,7 +795,7 @@ rm -f '$remoteDbDumpPath'
   }
 
   $remoteMigrationCommand = if ($RunMigration) {
-    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js'"
+    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
   } else {
     "echo 'Keine Migration angefordert.'"
   }
@@ -803,7 +803,7 @@ rm -f '$remoteDbDumpPath'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js'
+docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
