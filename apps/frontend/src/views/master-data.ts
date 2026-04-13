@@ -1,5 +1,4 @@
 import type { DeviceType, MasterDataOverview, SiteDevice } from "@leitstelle/contracts";
-import { mediaBundleProfileKeys } from "@leitstelle/contracts";
 
 import { state, deviceTypeOptions, planKindOptions, siteStatusOptions, userAdministrationRoleOptions, type SettingsSection } from "../state.js";
 import { escapeHtml, formatTimestamp } from "../utils.js";
@@ -27,6 +26,16 @@ type SettingsSectionDescriptor = {
   label: string;
   description: string;
 };
+
+const mediaBundleProfileKeys = [
+  "three_images_one_clip",
+  "single_snapshot",
+  "clip_only",
+  "nvr_channel_snapshot_clip",
+  "event_without_media"
+] as const;
+
+type MediaBundleProfileKey = (typeof mediaBundleProfileKeys)[number];
 
 const siteManagementSections: SiteManagementSectionDescriptor[] = [
   { id: "overview", label: "Uebersicht" },
@@ -61,7 +70,7 @@ const settingsSections: SettingsSectionDescriptor[] = [
   }
 ];
 
-const mediaBundleProfileLabels: Record<(typeof mediaBundleProfileKeys)[number], string> = {
+const mediaBundleProfileLabels: Record<MediaBundleProfileKey, string> = {
   three_images_one_clip: "3 Bilder + 1 Clip",
   single_snapshot: "Einzel-Snapshot",
   clip_only: "Nur Clip",
