@@ -535,7 +535,10 @@ test("operator ui structure highlights primary actions and readable status label
   };
 
   const queueMarkup = renderPipelineItem(state.openAlarms[0]!);
-  const screenMarkup = renderOperatorScreen();
+  state.operatorWindowRole = "primary";
+  const primaryScreenMarkup = renderOperatorScreen();
+  state.operatorWindowRole = "secondary";
+  const secondaryScreenMarkup = renderOperatorScreen();
 
   assert.match(queueMarkup, /Alarm oeffnen/);
   assert.match(queueMarkup, /Weitere Zuordnung/);
@@ -543,14 +546,19 @@ test("operator ui structure highlights primary actions and readable status label
   assert.match(queueMarkup, /Vorfall bestaetigt/);
   assert.match(queueMarkup, /Unvollstaendig/);
 
-  assert.match(screenMarkup, /Primaeraktionen/);
-  assert.match(screenMarkup, /Quittieren/);
-  assert.match(screenMarkup, /Eskalation \/ Weitergabe/);
-  assert.match(screenMarkup, /Quelle \/ Eingang/);
-  assert.match(screenMarkup, /Sekundaer/);
-  assert.match(screenMarkup, /Sekundaerkontext/);
-  assert.match(screenMarkup, /In Bearbeitung/);
-  assert.match(screenMarkup, /Vorfall bestaetigt/);
+  assert.match(primaryScreenMarkup, /Hauptbildschirm/);
+  assert.match(primaryScreenMarkup, /Primaeraktionen/);
+  assert.match(primaryScreenMarkup, /Quittieren/);
+  assert.match(primaryScreenMarkup, /Eskalation \/ Weitergabe/);
+  assert.match(primaryScreenMarkup, /Standortdaten und aktueller Bearbeitungsstatus/);
+  assert.match(primaryScreenMarkup, /Einsatzanweisungen/);
+  assert.match(primaryScreenMarkup, /In Bearbeitung/);
+  assert.match(primaryScreenMarkup, /Vorfall bestaetigt/);
+
+  assert.match(secondaryScreenMarkup, /Alarmannahme/);
+  assert.match(secondaryScreenMarkup, /Snapshot- \/ Medienbezug/);
+  assert.match(secondaryScreenMarkup, /Lageplan \/ Objektplan \/ Kamerakarte/);
+  assert.match(secondaryScreenMarkup, /Quelle \/ Eingang/);
 });
 
 test("operator keyboard preparation binds focus zones, shortcuts and safe list navigation", () => {
@@ -682,6 +690,17 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       toggleLeitstelleNavigation: () => undefined,
       toggleTheme: () => undefined,
       toggleKiosk: () => undefined,
+      openSecondaryOperatorWindow: () => undefined,
+      toggleOperatorLayoutEditor: () => undefined,
+      applyOperatorLayoutPreset: () => undefined,
+      moveOperatorLayoutWidget: () => undefined,
+      repositionOperatorLayoutWidget: () => undefined,
+      updateOperatorLayoutWidgetWidth: () => undefined,
+      updateOperatorLayoutWidgetHeight: () => undefined,
+      updateOperatorLayoutDraftName: () => undefined,
+      saveOperatorLayoutProfile: () => undefined,
+      applyOperatorLayoutProfile: () => undefined,
+      deleteOperatorLayoutProfile: () => undefined,
       toggleAlarmSound: () => undefined,
       toggleAlarmSoundIncludeNormalPriority: () => undefined,
       testAlarmSound: async () => undefined,

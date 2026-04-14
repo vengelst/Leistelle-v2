@@ -2,6 +2,11 @@ import type { AppHandlers } from "../actions/events.js";
 import type { HandlerRuntime } from "../actions/handler-runtime.js";
 import type { LoginMode, LoginResponse, SessionInfo } from "@leitstelle/contracts";
 
+import {
+  createOperatorLayoutPreset,
+  defaultOperatorLayoutDraftName,
+  loadPersistedOperatorLayoutBundle
+} from "../operator-layout.js";
 import { apiRequest, storageKey } from "../api.js";
 import { resetSessionScopedState, state } from "../state.js";
 import type { WorkspaceRouter } from "../navigation/router.js";
@@ -28,6 +33,10 @@ export function createSessionHandlers(
         const response = await apiRequest<{ session: SessionInfo }>("/api/v1/auth/session", { method: "GET" });
         deps.resetAlarmSoundTracking();
         state.session = response.session;
+        const persistedLayout = loadPersistedOperatorLayoutBundle(response.session.user.id);
+        state.operatorLayout = persistedLayout?.layout ?? createOperatorLayoutPreset("two-screen");
+        state.operatorLayoutProfiles = persistedLayout?.profiles ?? [];
+        state.operatorLayoutDraftName = defaultOperatorLayoutDraftName();
         deps.setSuccess("Vorhandene Session geladen.");
         await deps.refreshWorkspace(null);
       } catch (error) {
@@ -62,6 +71,10 @@ export function createSessionHandlers(
         });
         deps.resetAlarmSoundTracking();
         state.session = response.session;
+        const persistedLayout = loadPersistedOperatorLayoutBundle(response.session.user.id);
+        state.operatorLayout = persistedLayout?.layout ?? createOperatorLayoutPreset("two-screen");
+        state.operatorLayoutProfiles = persistedLayout?.profiles ?? [];
+        state.operatorLayoutDraftName = defaultOperatorLayoutDraftName();
         deps.setSuccess("Login erfolgreich.");
         localStorage.setItem(storageKey, response.session.token);
         form.reset();

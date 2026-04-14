@@ -10,6 +10,17 @@ export type AppHandlers = {
   toggleLeitstelleNavigation: () => void;
   toggleTheme: () => void;
   toggleKiosk: () => void;
+  openSecondaryOperatorWindow: () => void;
+  toggleOperatorLayoutEditor: () => void;
+  applyOperatorLayoutPreset: (presetId: string) => void;
+  moveOperatorLayoutWidget: (widgetId: string, action: string) => void;
+  repositionOperatorLayoutWidget: (widgetId: string, role: string, index: number) => void;
+  updateOperatorLayoutWidgetWidth: (widgetId: string, width: string) => void;
+  updateOperatorLayoutWidgetHeight: (widgetId: string, height: string) => void;
+  updateOperatorLayoutDraftName: (value: string) => void;
+  saveOperatorLayoutProfile: (event: SubmitEvent) => void;
+  applyOperatorLayoutProfile: (profileId: string) => void;
+  deleteOperatorLayoutProfile: (profileId: string) => void;
   toggleAlarmSound: () => void;
   toggleAlarmSoundIncludeNormalPriority: () => void;
   testAlarmSound: () => Promise<void>;
@@ -455,6 +466,39 @@ export function bindAppEvents(handlers: AppHandlers): void {
     button.addEventListener("click", () => handlers.navigateLeitstelleMode(button.dataset.leitstelleMode ?? "overview"));
   }
   document.querySelector<HTMLButtonElement>("#leitstelle-nav-toggle-button")?.addEventListener("click", () => handlers.toggleLeitstelleNavigation());
+  document.querySelector<HTMLButtonElement>("#open-secondary-operator-window-button")?.addEventListener("click", () => handlers.openSecondaryOperatorWindow());
+  document.querySelector<HTMLButtonElement>("#operator-layout-editor-toggle")?.addEventListener("click", () => handlers.toggleOperatorLayoutEditor());
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-operator-layout-preset]"))) {
+    button.addEventListener("click", () => handlers.applyOperatorLayoutPreset(button.dataset.operatorLayoutPreset ?? "two-screen"));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-widget-id][data-operator-layout-action]"))) {
+    button.addEventListener("click", () => handlers.moveOperatorLayoutWidget(
+      button.dataset.widgetId ?? "",
+      button.dataset.operatorLayoutAction ?? "up"
+    ));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-widget-id][data-layout-width]"))) {
+    button.addEventListener("click", () => handlers.updateOperatorLayoutWidgetWidth(
+      button.dataset.widgetId ?? "",
+      button.dataset.layoutWidth ?? "normal"
+    ));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-widget-id][data-layout-height]"))) {
+    button.addEventListener("click", () => handlers.updateOperatorLayoutWidgetHeight(
+      button.dataset.widgetId ?? "",
+      button.dataset.layoutHeight ?? "normal"
+    ));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-operator-layout-profile-id][data-operator-layout-apply]"))) {
+    button.addEventListener("click", () => handlers.applyOperatorLayoutProfile(button.dataset.operatorLayoutProfileId ?? ""));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-operator-layout-profile-id][data-operator-layout-delete]"))) {
+    button.addEventListener("click", () => handlers.deleteOperatorLayoutProfile(button.dataset.operatorLayoutProfileId ?? ""));
+  }
+  document.querySelector<HTMLInputElement>("#operator-layout-name-input")?.addEventListener("input", (event) => {
+    handlers.updateOperatorLayoutDraftName((event.currentTarget as HTMLInputElement).value);
+  });
+  document.querySelector<HTMLFormElement>("#operator-layout-save-form")?.addEventListener("submit", handlers.saveOperatorLayoutProfile);
   document.querySelector<HTMLButtonElement>("#theme-toggle-button")?.addEventListener("click", () => handlers.toggleTheme());
   document.querySelector<HTMLButtonElement>("#kiosk-toggle-button")?.addEventListener("click", () => handlers.toggleKiosk());
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
@@ -680,6 +724,7 @@ export function bindAppEvents(handlers: AppHandlers): void {
   bindLeafletMap({
     handleMapMarkerSelect: handlers.handleMapMarkerSelect
   });
+  bindOperatorLayoutDragAndDrop(handlers);
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".map-open-first-alarm-button, .map-open-alarm-button"))) {
     button.addEventListener("click", () => void handlers.handleMapOpenAlarm(button.dataset.alarmCaseId ?? ""));
   }
@@ -736,6 +781,39 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLFormElement>("#alarm-source-mapping-form")?.addEventListener("submit", handlers.handleAlarmSourceMappingSubmit);
   document.querySelector<HTMLFormElement>("#plan-form")?.addEventListener("submit", handlers.handlePlanSubmit);
   document.querySelector<HTMLFormElement>("#workflow-profile-form")?.addEventListener("submit", handlers.handleWorkflowProfileSubmit);
+}
+
+function bindOperatorLayoutDragAndDrop(
+  handlers: Pick<AppHandlers, "repositionOperatorLayoutWidget">
+): void {
+  let draggedWidgetId = "";
+
+  for (const element of Array.from(document.querySelectorAll<HTMLElement>("[data-layout-drag-widget-id]"))) {
+    element.addEventListener("dragstart", (event) => {
+      draggedWidgetId = element.dataset.layoutDragWidgetId ?? "";
+      event.dataTransfer?.setData("text/plain", draggedWidgetId);
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+      }
+    });
+  }
+
+  for (const zone of Array.from(document.querySelectorAll<HTMLElement>("[data-layout-drop-role][data-layout-drop-index]"))) {
+    zone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+    });
+    zone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const widgetId = draggedWidgetId || event.dataTransfer?.getData("text/plain") || "";
+      const role = zone.dataset.layoutDropRole ?? "primary";
+      const index = Number(zone.dataset.layoutDropIndex ?? "0");
+      handlers.repositionOperatorLayoutWidget(widgetId, role, Number.isFinite(index) ? index : 0);
+      draggedWidgetId = "";
+    });
+  }
 }
 
 function toggleLoginPasswordVisibility(): void {

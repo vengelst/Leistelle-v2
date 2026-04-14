@@ -17,6 +17,13 @@ import { createUiHandlers } from "./handlers/ui.handlers.js";
 import { createAlarmLiveRefreshController } from "./alarm-live-refresh.js";
 import { createAlarmSoundController } from "./alarm-sound.js";
 import { createWorkspaceRouter } from "./navigation/router.js";
+import { normalizeOperatorLayout, normalizeOperatorLayoutProfiles } from "./operator-layout.js";
+import {
+  applyOperatorWindowDocumentState,
+  createOperatorSelectionSync,
+  openSecondaryOperatorWindow,
+  resolveOperatorWindowRole
+} from "./operator-window.js";
 import { state } from "./state.js";
 import { captureDomState, restoreDomState } from "./ui/dom-preservation.js";
 import { scrollToRegion } from "./utils.js";
@@ -35,6 +42,8 @@ let renderScheduled = false;
 let renderBatchDepth = 0;
 let renderQueuedWhileBatch = false;
 
+state.operatorWindowRole = resolveOperatorWindowRole(window.location.search);
+applyOperatorWindowDocumentState(state.operatorWindowRole);
 initializeThemeMode();
 initializeKioskMode();
 initializeAlarmSoundPreferences();
@@ -63,7 +72,14 @@ const uiHandlers = createUiHandlers({
   alarmSoundIncludeNormalPriorityStorageKey,
   applyThemeMode,
   armAlarmSound: () => alarmSoundController.arm(),
+  broadcastOperatorLayoutUpdate: () => operatorSelectionSync.broadcastLayoutUpdate(
+    state.operatorLayout,
+    state.operatorLayoutProfiles,
+    state.operatorLayoutDraftName,
+    state.operatorLayoutEditorOpen
+  ),
   kioskStorageKey,
+  openSecondaryOperatorWindow: () => openSecondaryOperatorWindow(router.hrefForLeitstelleMode("operator")),
   playAlarmSoundPreview: () => alarmSoundController.playPreview(),
   router,
   themeStorageKey
@@ -71,9 +87,11 @@ const uiHandlers = createUiHandlers({
 
 const reportingArchiveActions = createReportingArchiveHandlers(runtime);
 const shiftPlanningActions = createShiftPlanningHandlers(runtime);
+let broadcastSelectedAlarmToOperatorWindows = (_alarmCaseId: string): void => undefined;
 const alarmHandlers = createAlarmDomainHandlers({
   ...runtime,
-  handleOpenAlarmPipelineUpdate: (update) => alarmSoundController.handleAlarmPipelineUpdate(update)
+  handleOpenAlarmPipelineUpdate: (update) => alarmSoundController.handleAlarmPipelineUpdate(update),
+  broadcastAlarmSelection: (alarmCaseId) => broadcastSelectedAlarmToOperatorWindows(alarmCaseId)
 });
 const disturbanceHandlers = createDisturbanceHandlers(runtime);
 const mapActions = createMapHandlers({
@@ -146,6 +164,37 @@ const sessionHandlers = createSessionHandlers({
   router
 });
 const adminHandlers = createAdminHandlers(runtime);
+const operatorSelectionSync = createOperatorSelectionSync({
+  onAlarmSelection: (alarmCaseId) => {
+    if (!alarmCaseId || state.operatorWindowRole !== "primary") {
+      return;
+    }
+
+    const shouldNavigate = state.activeWorkspace !== "leitstelle" || state.leitstelleMode !== "operator";
+    if (shouldNavigate) {
+      router.navigateLeitstelleMode("operator");
+      render();
+    }
+
+    if (state.selectedAlarmDetail?.alarmCase.id === alarmCaseId && !shouldNavigate) {
+      return;
+    }
+
+    void alarmHandlers.handleDetail(alarmCaseId);
+  },
+  onLayoutUpdate: (layout, profiles, draftName, editorOpen) => {
+    state.operatorLayout = normalizeOperatorLayout(layout);
+    state.operatorLayoutProfiles = normalizeOperatorLayoutProfiles(profiles);
+    state.operatorLayoutDraftName = draftName;
+    state.operatorLayoutEditorOpen = editorOpen;
+    render();
+  }
+});
+broadcastSelectedAlarmToOperatorWindows = (alarmCaseId) => {
+  if (state.operatorWindowRole === "secondary") {
+    operatorSelectionSync.broadcastAlarmSelection(alarmCaseId);
+  }
+};
 
 const handlers: AppHandlers = {
   ...uiHandlers,
@@ -161,6 +210,7 @@ const handlers: AppHandlers = {
 };
 
 router.start();
+operatorSelectionSync.start();
 createAlarmLiveRefreshController({
   intervalMs: 15000,
   setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),

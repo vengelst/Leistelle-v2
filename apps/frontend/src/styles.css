@@ -423,6 +423,134 @@ h1 {
   align-items: start;
 }
 
+.operator-window-layout,
+.operator-primary-screen,
+.operator-window-body {
+  display: grid;
+  gap: 16px;
+}
+
+.operator-layout-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.operator-layout-toolbar-card {
+  position: sticky;
+  top: 20px;
+  z-index: 2;
+}
+
+.operator-layout-toolbar-actions {
+  flex-wrap: wrap;
+}
+
+.operator-layout-widget {
+  min-width: 0;
+}
+
+.operator-layout-editor-board {
+  margin-top: 8px;
+}
+
+.operator-layout-editor-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.operator-layout-editor-column {
+  gap: 10px;
+}
+
+.operator-layout-editor-item {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  cursor: grab;
+}
+
+.operator-layout-editor-item:active {
+  cursor: grabbing;
+}
+
+.operator-layout-editor-size-actions {
+  flex-wrap: wrap;
+}
+
+.operator-layout-drop-zone {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--muted);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.operator-layout-profile-card {
+  margin-top: 4px;
+}
+
+.operator-layout-profile-row {
+  justify-content: space-between;
+}
+
+.operator-layout-widget.widget-width-wide,
+.operator-layout-widget.widget-width-full {
+  grid-column: span 2;
+}
+
+.operator-layout-widget.widget-height-tall .subcard:first-of-type,
+.operator-layout-widget.widget-height-tall > .subcard {
+  min-height: 320px;
+}
+
+.operator-widget-editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px dashed var(--border);
+  background: var(--surface-soft);
+}
+
+.operator-layout-widget-queue .operator-screen-queue-card {
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 980px) {
+  .operator-layout-stack,
+  .operator-layout-editor-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-layout-widget.widget-width-wide,
+  .operator-layout-widget.widget-width-full {
+    grid-column: auto;
+  }
+}
+
+.operator-window-shell {
+  max-width: none;
+  width: 100%;
+}
+
+.operator-window-shell-secondary {
+  min-height: 100dvh;
+  padding: 20px;
+}
+
+.operator-window-hero {
+  margin-bottom: 18px;
+}
+
 .operator-screen-queue-column,
 .operator-screen-context-column,
 .operator-screen-context {

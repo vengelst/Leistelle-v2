@@ -53,6 +53,26 @@ export type ThemeMode = "light" | "dark";
 export type BusyStateMap = Record<string, string>;
 export type UserAdministrationView = "list" | "detail";
 export type AlarmSoundPermissionState = "unknown" | "ready" | "blocked" | "unsupported";
+export type OperatorWindowRole = "primary" | "secondary";
+export type OperatorLayoutWidgetId = "queue" | "site" | "instructions" | "actions" | "documentation" | "media" | "plan" | "source";
+export type OperatorLayoutPresetId = "two-screen" | "single-screen";
+export type OperatorLayoutWidgetWidth = "normal" | "wide" | "full";
+export type OperatorLayoutWidgetHeight = "normal" | "tall";
+export type OperatorLayoutWidgetSize = {
+  width: OperatorLayoutWidgetWidth;
+  height: OperatorLayoutWidgetHeight;
+};
+export type OperatorLayoutConfig = {
+  primary: OperatorLayoutWidgetId[];
+  secondary: OperatorLayoutWidgetId[];
+  widgetSizes: Record<OperatorLayoutWidgetId, OperatorLayoutWidgetSize>;
+  presetId: OperatorLayoutPresetId | "custom";
+};
+export type OperatorLayoutProfile = {
+  id: string;
+  name: string;
+  layout: OperatorLayoutConfig;
+};
 
 export type FrontendState = {
   session: SessionInfo | null;
@@ -98,6 +118,11 @@ export type FrontendState = {
   selectedAlarmMediaPreviewErrors: Record<string, string>;
   activeWorkspace: WorkspaceId;
   leitstelleMode: LeitstelleMode;
+  operatorWindowRole: OperatorWindowRole;
+  operatorLayout: OperatorLayoutConfig;
+  operatorLayoutProfiles: OperatorLayoutProfile[];
+  operatorLayoutDraftName: string;
+  operatorLayoutEditorOpen: boolean;
   leitstelleNavigationCollapsed: boolean;
   themeMode: ThemeMode;
   loginMode: LoginMode;
@@ -181,6 +206,25 @@ export const state: FrontendState = {
   selectedAlarmMediaPreviewErrors: {},
   activeWorkspace: "dashboard",
   leitstelleMode: "alarms",
+  operatorWindowRole: "primary",
+  operatorLayout: {
+    primary: ["site", "instructions", "actions", "documentation"],
+    secondary: ["queue", "media", "plan", "source"],
+    widgetSizes: {
+      queue: { width: "full", height: "tall" },
+      site: { width: "wide", height: "normal" },
+      instructions: { width: "normal", height: "normal" },
+      actions: { width: "wide", height: "normal" },
+      documentation: { width: "wide", height: "tall" },
+      media: { width: "wide", height: "tall" },
+      plan: { width: "wide", height: "tall" },
+      source: { width: "normal", height: "normal" }
+    },
+    presetId: "two-screen"
+  },
+  operatorLayoutProfiles: [],
+  operatorLayoutDraftName: "",
+  operatorLayoutEditorOpen: false,
   leitstelleNavigationCollapsed: false,
   themeMode: "light",
   loginMode: "password",
@@ -247,6 +291,24 @@ export function resetSessionScopedState(): void {
   state.selectedAlarmMediaPreviewErrors = {};
   state.activeWorkspace = "dashboard";
   state.leitstelleMode = "alarms";
+  state.operatorLayout = {
+    primary: ["site", "instructions", "actions", "documentation"],
+    secondary: ["queue", "media", "plan", "source"],
+    widgetSizes: {
+      queue: { width: "full", height: "tall" },
+      site: { width: "wide", height: "normal" },
+      instructions: { width: "normal", height: "normal" },
+      actions: { width: "wide", height: "normal" },
+      documentation: { width: "wide", height: "tall" },
+      media: { width: "wide", height: "tall" },
+      plan: { width: "wide", height: "tall" },
+      source: { width: "normal", height: "normal" }
+    },
+    presetId: "two-screen"
+  };
+  state.operatorLayoutProfiles = [];
+  state.operatorLayoutDraftName = "";
+  state.operatorLayoutEditorOpen = false;
   state.leitstelleNavigationCollapsed = false;
   state.selectedSettingsSection = "overview";
   state.userAdministrationView = "list";

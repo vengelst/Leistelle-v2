@@ -28,6 +28,7 @@ import {
 
 type AlarmPipelineUpdateSource = "fetch" | "poll";
 type AlarmHandlerDeps = HandlerRuntime & {
+  broadcastAlarmSelection?: (alarmCaseId: string) => void;
   handleOpenAlarmPipelineUpdate?: (update: {
     previousItems: AlarmPipelineItem[];
     nextItems: AlarmPipelineItem[];
@@ -301,6 +302,7 @@ export function createAlarmHandlers(
   async function handleDetail(alarmCaseId: string): Promise<void> {
     if (!alarmCaseId) return;
     state.selectedAlarmCaseId = alarmCaseId;
+    deps.broadcastAlarmSelection?.(alarmCaseId);
     deps.setBusyState("alarm-detail", "Alarmkontext wird geladen");
     try {
       await deps.runRenderBatch(async () => {

@@ -16,6 +16,10 @@ export function bindLeafletMap(
     handleMapMarkerSelect: (siteId: string) => Promise<void>;
   }
 ): void {
+  if (typeof document === "undefined" || typeof window === "undefined") {
+    return;
+  }
+
   const container = document.querySelector<HTMLElement>("#leaflet-map");
   const markers = state.siteMarkers?.markers ?? [];
   const L = resolveLeaflet();
@@ -164,6 +168,10 @@ function escapeLeafletHtml(value: string): string {
 }
 
 function resolveLeaflet(): LeafletNamespace | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
   const scope = window as Window & { L?: LeafletNamespace };
   return scope.L ?? null;
 }

@@ -56,6 +56,7 @@ test("operator screen renders inline snapshot preview for active alarm media", (
   } as any;
   state.selectedAlarmDetail = createDetailFixture();
   state.selectedAlarmCaseId = "alarm-1";
+  state.operatorWindowRole = "secondary";
   state.selectedAlarmMediaPreviews = {
     "media-1": {
       mediaId: "media-1",

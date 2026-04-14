@@ -284,6 +284,8 @@ test("kiosk toggle stores shell preference without second app", () => {
       alarmSoundIncludeNormalPriorityStorageKey: "leitstelle.alarm.sound.include-normal",
       applyThemeMode: () => undefined,
       armAlarmSound: async () => undefined,
+      broadcastOperatorLayoutUpdate: () => undefined,
+      openSecondaryOperatorWindow: () => undefined,
       render: () => undefined,
       playAlarmSoundPreview: async () => undefined,
       router: {

@@ -12,7 +12,9 @@ type UiHandlerDeps = HandlerRuntime & {
   alarmSoundIncludeNormalPriorityStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
+  broadcastOperatorLayoutUpdate: () => void;
   kioskStorageKey: string;
+  openSecondaryOperatorWindow: () => void;
   playAlarmSoundPreview: () => Promise<void>;
   router: WorkspaceRouter;
   themeStorageKey: string;
@@ -28,6 +30,17 @@ export function createUiHandlers(
   | "toggleLeitstelleNavigation"
   | "toggleTheme"
   | "toggleKiosk"
+  | "openSecondaryOperatorWindow"
+  | "toggleOperatorLayoutEditor"
+  | "applyOperatorLayoutPreset"
+  | "moveOperatorLayoutWidget"
+  | "repositionOperatorLayoutWidget"
+  | "updateOperatorLayoutWidgetWidth"
+  | "updateOperatorLayoutWidgetHeight"
+  | "updateOperatorLayoutDraftName"
+  | "saveOperatorLayoutProfile"
+  | "applyOperatorLayoutProfile"
+  | "deleteOperatorLayoutProfile"
   | "toggleAlarmSound"
   | "toggleAlarmSoundIncludeNormalPriority"
   | "testAlarmSound"

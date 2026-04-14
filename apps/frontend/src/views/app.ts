@@ -62,6 +62,10 @@ export function renderApp(): string {
     return renderStandaloneLoginScreen();
   }
 
+  if (state.operatorWindowRole === "secondary") {
+    return renderSecondaryOperatorWindow();
+  }
+
   const visibleWorkspaces = workspaces.filter((workspace) => workspace.id !== "settings" || canAccessSettingsWorkspace());
   const activeWorkspace = visibleWorkspaces.find((workspace) => workspace.id === state.activeWorkspace) ?? visibleWorkspaces[0]!;
   const pendingOperations = Object.values(state.pendingOperations);
@@ -194,6 +198,7 @@ function renderLeitstelleToolbar(): string {
   const soundStatusLabel = state.alarmSoundEnabled ? "Alarmton an" : "Alarmton aus";
   const soundPriorityLabel = state.alarmSoundIncludeNormalPriority ? "ab normal" : "kritisch/hoch";
   const soundPermissionLabel = formatAlarmSoundPermissionLabel();
+  const isOperatorMode = state.leitstelleMode === "operator";
 
   return `
     <section class="workspace-main-toolbar leitstelle-toolbar">
@@ -206,9 +211,11 @@ function renderLeitstelleToolbar(): string {
         ${renderPill(soundStatusLabel)}
         ${renderPill(`Signal ${soundPriorityLabel}`)}
         ${state.alarmSoundEnabled ? renderPill(`Audio ${soundPermissionLabel}`) : ""}
+        ${isOperatorMode ? renderPill("2-Screen bereit") : ""}
         <button type="button" id="leitstelle-nav-toggle-button" class="secondary">
           ${state.leitstelleNavigationCollapsed ? "Navigation einblenden" : "Navigation einklappen"}
         </button>
+        ${isOperatorMode ? `<button type="button" id="open-secondary-operator-window-button" class="secondary">2. Bildschirm oeffnen</button>` : ""}
         <button type="button" id="alarm-sound-toggle-button" class="secondary">
           ${state.alarmSoundEnabled ? "Alarmton stummschalten" : "Alarmton aktivieren"}
         </button>
@@ -259,6 +266,32 @@ function renderAlarmSoundNotice(): string {
   }
 
   return "";
+}
+
+function renderSecondaryOperatorWindow(): string {
+  return `
+    <main class="shell operator-window-shell operator-window-shell-secondary">
+      <header class="hero leitstelle-hero operator-window-hero">
+        <div class="hero-topline">
+          <div>
+            <p class="eyebrow">${shell.subtitle}</p>
+            <h1>Alarmmonitor</h1>
+          </div>
+          <div class="hero-status">
+            ${renderPill("Screen 2")}
+            ${renderPill(state.session!.user.displayName)}
+            ${renderPill("FIFO + Medien + Karte")}
+          </div>
+        </div>
+        <p class="muted">Dieses Fenster ist fuer Warteschlange, Medien und Vor-Ort-Karte gedacht. Standortdaten, Ablauf und Dokumentation bleiben im Hauptfenster.</p>
+      </header>
+      <section class="operator-window-body">
+        ${renderOperatorWorkspace()}
+      </section>
+      ${state.message ? renderNotice(state.message, "success") : ""}
+      ${state.error ? renderNotice(state.error, "error") : ""}
+    </main>
+  `;
 }
 
 function renderRegion(regionId: (typeof shell.regions)[number]["id"]): string {
