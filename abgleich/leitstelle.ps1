@@ -668,7 +668,7 @@ $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
 docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
-docker compose ps
+docker compose --env-file '$ComposeEnvFile' ps
 $remoteHealthCommand
 echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
 "@
@@ -848,7 +848,7 @@ $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
 docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
-docker compose ps
+docker compose --env-file '$ComposeEnvFile' ps
 $remoteHealthCommand
 echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
 "@
