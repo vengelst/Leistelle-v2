@@ -73,6 +73,8 @@ export type FrontendState = {
   siteMarkers: SiteMapMarkerCollection | null;
   selectedMapSiteId?: string;
   mapZoom: number;
+  mapCenterLatitude?: number;
+  mapCenterLongitude?: number;
   mapPanX: number;
   mapPanY: number;
   siteManagementView: SiteManagementView;
@@ -157,7 +159,9 @@ export const state: FrontendState = {
   selectedMonitoringDetail: null,
   pendingOperations: {},
   siteMarkers: null,
-  mapZoom: 1,
+  mapZoom: 6,
+  mapCenterLatitude: 51.2,
+  mapCenterLongitude: 10.45,
   mapPanX: 0,
   mapPanY: 0,
   siteManagementView: "list",
@@ -216,7 +220,9 @@ export function resetSessionScopedState(): void {
   delete state.selectedMonitoringDisturbanceId;
   delete state.selectedSiteId;
   state.siteMarkers = null;
-  state.mapZoom = 1;
+  state.mapZoom = 6;
+  state.mapCenterLatitude = 51.2;
+  state.mapCenterLongitude = 10.45;
   state.mapPanX = 0;
   state.mapPanY = 0;
   state.siteManagementView = "list";

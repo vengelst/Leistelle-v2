@@ -1,5 +1,6 @@
 import type { AlarmCaseExportFormat, AlarmMediaAccessMode, UiShellDescriptor } from "@leitstelle/contracts";
 
+import { bindLeafletMap } from "../leaflet-map.js";
 import { state } from "../state.js";
 
 export type AppHandlers = {
@@ -125,8 +126,6 @@ let activeDeviceModalBackdrop: {
 
 let activeDeviceModalEscapeListener: ((event: KeyboardEvent) => void) | null = null;
 let activeOperatorKeyboardListener: ((event: KeyboardEvent) => void) | null = null;
-let activeMapInteractionCleanup: (() => void) | null = null;
-
 type OperatorFocusRequest =
   | { zone: "list" | "detail" | "actions" }
   | { zone: "list-entry"; alarmCaseId: string };
@@ -678,7 +677,9 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLButtonElement>("#site-management-device-delete-button")?.addEventListener("click", () => void handlers.handleSiteManagementDeleteDevice());
   bindDeviceModalCloseInteractions(handlers);
   bindOperatorKeyboardInteractions();
-  bindMapInteractions();
+  bindLeafletMap({
+    handleMapMarkerSelect: handlers.handleMapMarkerSelect
+  });
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".map-open-first-alarm-button, .map-open-alarm-button"))) {
     button.addEventListener("click", () => void handlers.handleMapOpenAlarm(button.dataset.alarmCaseId ?? ""));
   }
@@ -751,203 +752,6 @@ function toggleLoginPasswordVisibility(): void {
   toggleButton.setAttribute("aria-label", nextVisible ? "Passwort verbergen" : "Passwort anzeigen");
   toggleButton.innerHTML = nextVisible ? renderEyeOffIcon() : renderEyeIcon();
   passwordInput.focus();
-}
-
-function bindMapInteractions(): void {
-  if (activeMapInteractionCleanup) {
-    activeMapInteractionCleanup();
-    activeMapInteractionCleanup = null;
-  }
-
-  const viewport = document.querySelector<HTMLElement>("[data-map-viewport=\"true\"]");
-  const scene = viewport?.querySelector<HTMLElement>(".map-scene");
-  if (!viewport || !scene) {
-    return;
-  }
-
-  applyMapSceneTransform(scene);
-
-  const pointers = new Map<number, { x: number; y: number }>();
-  let dragOrigin:
-    | {
-        pointerId: number;
-        startX: number;
-        startY: number;
-        panX: number;
-        panY: number;
-      }
-    | null = null;
-  let pinchOrigin:
-    | {
-        distance: number;
-        zoom: number;
-        worldX: number;
-        worldY: number;
-      }
-    | null = null;
-
-  const onWheel = (event: WheelEvent) => {
-    event.preventDefault();
-    const rect = viewport.getBoundingClientRect();
-    const nextZoom = clampMapZoom(state.mapZoom * (event.deltaY < 0 ? 1.12 : 0.88));
-    zoomMapAtPoint(scene, viewport, nextZoom, event.clientX - rect.left, event.clientY - rect.top);
-  };
-
-  const onPointerDown = (event: PointerEvent) => {
-    if (event.pointerType === "mouse" && event.button !== 0) {
-      return;
-    }
-
-    viewport.setPointerCapture(event.pointerId);
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (pointers.size === 1) {
-      dragOrigin = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        panX: state.mapPanX,
-        panY: state.mapPanY
-      };
-      pinchOrigin = null;
-      return;
-    }
-
-    if (pointers.size === 2) {
-      dragOrigin = null;
-      pinchOrigin = createPinchOrigin(pointers, viewport);
-    }
-  };
-
-  const onPointerMove = (event: PointerEvent) => {
-    if (!pointers.has(event.pointerId)) {
-      return;
-    }
-
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (pointers.size === 2) {
-      if (!pinchOrigin) {
-        pinchOrigin = createPinchOrigin(pointers, viewport);
-      }
-
-      if (!pinchOrigin) {
-        return;
-      }
-
-      const points = Array.from(pointers.values());
-      const centerX = (points[0]!.x + points[1]!.x) / 2;
-      const centerY = (points[0]!.y + points[1]!.y) / 2;
-      const rect = viewport.getBoundingClientRect();
-      const distance = distanceBetween(points[0]!, points[1]!);
-      const nextZoom = clampMapZoom(pinchOrigin.zoom * (distance / Math.max(pinchOrigin.distance, 1)));
-      const screenX = centerX - rect.left;
-      const screenY = centerY - rect.top;
-      const nextPanX = screenX - (pinchOrigin.worldX * nextZoom);
-      const nextPanY = screenY - (pinchOrigin.worldY * nextZoom);
-      setMapTransform(scene, viewport, nextZoom, nextPanX, nextPanY);
-      return;
-    }
-
-    if (!dragOrigin || dragOrigin.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const nextPanX = dragOrigin.panX + (event.clientX - dragOrigin.startX);
-    const nextPanY = dragOrigin.panY + (event.clientY - dragOrigin.startY);
-    setMapTransform(scene, viewport, state.mapZoom, nextPanX, nextPanY);
-  };
-
-  const clearPointer = (event: PointerEvent) => {
-    pointers.delete(event.pointerId);
-    if (viewport.hasPointerCapture(event.pointerId)) {
-      viewport.releasePointerCapture(event.pointerId);
-    }
-
-    if (pointers.size === 1) {
-      const [pointerId, point] = Array.from(pointers.entries())[0]!;
-      dragOrigin = {
-        pointerId,
-        startX: point.x,
-        startY: point.y,
-        panX: state.mapPanX,
-        panY: state.mapPanY
-      };
-      pinchOrigin = null;
-      return;
-    }
-
-    dragOrigin = null;
-    pinchOrigin = null;
-  };
-
-  viewport.addEventListener("wheel", onWheel, { passive: false });
-  viewport.addEventListener("pointerdown", onPointerDown);
-  viewport.addEventListener("pointermove", onPointerMove);
-  viewport.addEventListener("pointerup", clearPointer);
-  viewport.addEventListener("pointercancel", clearPointer);
-
-  activeMapInteractionCleanup = () => {
-    viewport.removeEventListener("wheel", onWheel);
-    viewport.removeEventListener("pointerdown", onPointerDown);
-    viewport.removeEventListener("pointermove", onPointerMove);
-    viewport.removeEventListener("pointerup", clearPointer);
-    viewport.removeEventListener("pointercancel", clearPointer);
-  };
-}
-
-function createPinchOrigin(
-  pointers: Map<number, { x: number; y: number }>,
-  viewport: HTMLElement
-): { distance: number; zoom: number; worldX: number; worldY: number } | null {
-  const points = Array.from(pointers.values());
-  if (points.length < 2) {
-    return null;
-  }
-
-  const rect = viewport.getBoundingClientRect();
-  const centerX = ((points[0]!.x + points[1]!.x) / 2) - rect.left;
-  const centerY = ((points[0]!.y + points[1]!.y) / 2) - rect.top;
-  return {
-    distance: distanceBetween(points[0]!, points[1]!),
-    zoom: state.mapZoom,
-    worldX: (centerX - state.mapPanX) / state.mapZoom,
-    worldY: (centerY - state.mapPanY) / state.mapZoom
-  };
-}
-
-function zoomMapAtPoint(scene: HTMLElement, viewport: HTMLElement, zoom: number, screenX: number, screenY: number): void {
-  const worldX = (screenX - state.mapPanX) / state.mapZoom;
-  const worldY = (screenY - state.mapPanY) / state.mapZoom;
-  const nextPanX = screenX - (worldX * zoom);
-  const nextPanY = screenY - (worldY * zoom);
-  setMapTransform(scene, viewport, zoom, nextPanX, nextPanY);
-}
-
-function setMapTransform(scene: HTMLElement, viewport: HTMLElement, zoom: number, panX: number, panY: number): void {
-  const rect = viewport.getBoundingClientRect();
-  const minPanX = Math.min(0, rect.width - (rect.width * zoom));
-  const minPanY = Math.min(0, rect.height - (rect.height * zoom));
-  state.mapZoom = zoom;
-  state.mapPanX = clampBetween(panX, minPanX, 0);
-  state.mapPanY = clampBetween(panY, minPanY, 0);
-  applyMapSceneTransform(scene);
-}
-
-function applyMapSceneTransform(scene: HTMLElement): void {
-  scene.style.transform = `translate(${state.mapPanX}px, ${state.mapPanY}px) scale(${state.mapZoom})`;
-}
-
-function clampMapZoom(value: number): number {
-  return Math.min(4, Math.max(1, Math.round(value * 100) / 100));
-}
-
-function clampBetween(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function distanceBetween(left: { x: number; y: number }, right: { x: number; y: number }): number {
-  return Math.hypot(right.x - left.x, right.y - left.y);
 }
 
 function bindUserAvatarControls(): void {

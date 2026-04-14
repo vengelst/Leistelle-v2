@@ -8,5 +8,9 @@
     "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "dev": "npm run build"
+  },
+  "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4"
   }
 }

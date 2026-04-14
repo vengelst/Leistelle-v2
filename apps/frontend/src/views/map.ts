@@ -5,7 +5,6 @@ import { formatDuration, formatTimestamp } from "../utils.js";
 import {
   listMapSiteAlarms,
   listMapSiteDisturbances,
-  projectMarkerPosition,
   renderSitePlanWorkspace
 } from "./common.js";
 
@@ -37,48 +36,11 @@ export function renderMapSection(): string {
       </div>
       <div class="map-layout">
         <section class="map-stage" aria-label="Deutschlandkarte">
-          <div class="map-canvas">
-            <div class="map-viewport" data-map-viewport="true" aria-label="Deutschlandkarte">
-              <div
-                class="map-scene"
-                style="transform: translate(${state.mapPanX}px, ${state.mapPanY}px) scale(${state.mapZoom});"
-              >
-                <img class="map-base-image" src="./src/assets/maps/germany.svg" alt="Deutschlandkarte" draggable="false" />
-                <div class="map-marker-layer">
-                  ${markerCollection.markers.map((marker) => renderMapMarker(marker, selectedMarker?.siteId === marker.siteId)).join("")}
-                </div>
-              </div>
-            </div>
-          </div>
+          <div id="leaflet-map" class="map-canvas leaflet-map-canvas" aria-label="Deutschlandkarte"></div>
         </section>
         ${selectedMarker ? renderMapSelectionPanel(selectedMarker) : `<aside class="subcard stack"><p class="empty">Standortmarker waehlen, um Details zu sehen.</p></aside>`}
       </div>
     </section>
-  `;
-}
-
-export function renderMapMarker(marker: SiteMapMarkerCollection["markers"][number], isSelected: boolean): string {
-  const position = projectMarkerPosition(marker.latitude, marker.longitude);
-  const statusClass = marker.technicalStatus.overallStatus === "offline"
-    ? "marker-offline"
-    : marker.technicalStatus.overallStatus === "disturbed"
-      ? "marker-disturbed"
-      : "marker-ok";
-  const alarmClass = marker.hasOpenAlarm ? " marker-has-alarm" : "";
-
-  return `
-    <button
-      type="button"
-      class="map-marker-button ${statusClass}${alarmClass}${isSelected ? " selected" : ""}"
-      data-site-id="${marker.siteId}"
-      style="left:${position.left}%;top:${position.top}%"
-      aria-label="${marker.siteName}, Status ${marker.technicalStatus.overallStatus}"
-      title="${marker.siteName} | ${marker.customerName} | Alarm ${marker.openAlarmCount} | Stoerungen ${marker.openDisturbanceCount}"
-    >
-      <span class="map-marker-core"></span>
-      <span class="map-marker-label">${marker.siteName}</span>
-      ${marker.openDisturbanceCount > 0 ? `<span class="map-marker-count">${marker.openDisturbanceCount}</span>` : ""}
-    </button>
   `;
 }
 

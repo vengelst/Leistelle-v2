@@ -1560,6 +1560,94 @@ button.secondary {
   border-radius: 18px;
 }
 
+.leaflet-map-canvas {
+  border: 1px solid rgba(29, 42, 47, 0.12);
+  background: linear-gradient(180deg, rgba(200, 222, 235, 0.82), rgba(225, 233, 238, 0.94));
+}
+
+.leaflet-map-canvas.leaflet-container,
+.leaflet-map-canvas .leaflet-container {
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  background: linear-gradient(180deg, rgba(200, 222, 235, 0.82), rgba(225, 233, 238, 0.94));
+}
+
+.leaflet-map-canvas .leaflet-control-attribution,
+.leaflet-map-canvas .leaflet-control-zoom a {
+  color: var(--ink);
+}
+
+.leaflet-site-marker-wrapper {
+  background: transparent;
+  border: 0;
+}
+
+.leaflet-site-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+}
+
+.leaflet-site-marker-core {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 18px rgba(29, 42, 47, 0.24);
+}
+
+.leaflet-site-marker.marker-ok .leaflet-site-marker-core {
+  background: #1f6a47;
+}
+
+.leaflet-site-marker.marker-disturbed .leaflet-site-marker-core {
+  background: #9b4d2f;
+}
+
+.leaflet-site-marker.marker-offline .leaflet-site-marker-core {
+  background: #8a2b2b;
+}
+
+.leaflet-site-marker.marker-has-alarm .leaflet-site-marker-core {
+  box-shadow: 0 0 0 6px rgba(193, 40, 59, 0.16), 0 8px 18px rgba(29, 42, 47, 0.24);
+}
+
+.leaflet-site-marker.selected .leaflet-site-marker-core {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 6px rgba(29, 42, 47, 0.12), 0 10px 22px rgba(29, 42, 47, 0.24);
+}
+
+.leaflet-site-marker-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -3px;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: rgba(29, 42, 47, 0.9);
+  color: #fff;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.leaflet-site-tooltip {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  box-shadow: 0 10px 28px rgba(29, 42, 47, 0.16);
+}
+
+.leaflet-site-tooltip strong {
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
 .map-viewport {
   position: absolute;
   inset: 0;
