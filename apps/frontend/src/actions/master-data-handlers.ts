@@ -218,7 +218,9 @@ export function createMasterDataHandlers(
         failureThreshold: Number(formData.get("failureThreshold") ?? 3),
         uiDensity: readSelectValue(formData, "uiDensity", ["comfortable", "compact"] as const),
         escalationProfile: readSelectValue(formData, "escalationProfile", ["standard", "elevated"] as const),
-        workflowProfile: readSelectValue(formData, "workflowProfile", ["default", "weekend_sensitive"] as const)
+        workflowProfile: readSelectValue(formData, "workflowProfile", ["default", "weekend_sensitive"] as const),
+        passwordMinLength: Number(formData.get("passwordMinLength") ?? 8),
+        kioskCodeLength: Number(formData.get("kioskCodeLength") ?? 6)
       }, "Globale Einstellungen gespeichert.");
     },
     async handleCustomerSubmit(event: SubmitEvent): Promise<void> {

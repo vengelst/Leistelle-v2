@@ -73,6 +73,7 @@ import {
   reportingPeriods,
   shiftPlanningPeriods,
   shiftPlanningStates,
+  loginModes,
   siteTechnicalOverallStatuses,
   siteStatuses,
   userRoles
@@ -83,13 +84,39 @@ import { readJsonBody } from "./body.js";
 
 const trimmedString = z.string().trim().min(1);
 const optionalTrimmedString = z.string().trim().optional().transform((value) => (value && value.length > 0 ? value : undefined));
+const optionalNullableTrimmedString = z.union([z.string().trim(), z.null()]).optional().transform((value) => {
+  if (value === null) {
+    return null;
+  }
+
+  return value && value.length > 0 ? value : undefined;
+});
 const optionalLatitude = z.number().min(-90).max(90).optional();
 const optionalLongitude = z.number().min(-180).max(180).optional();
 
-export const loginRequestSchema: ZodType<LoginRequest> = z.object({
-  identifier: trimmedString,
-  password: z.string().min(1)
-});
+export const loginRequestSchema: ZodType<LoginRequest> = z
+  .object({
+    mode: z.enum(loginModes),
+    identifier: optionalTrimmedString,
+    password: optionalTrimmedString,
+    kioskCode: optionalTrimmedString
+  })
+  .superRefine((value, context) => {
+    if (value.mode === "password") {
+      if (!value.identifier) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "identifier is required for password login.", path: ["identifier"] });
+      }
+      if (!value.password) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "password is required for password login.", path: ["password"] });
+      }
+      return;
+    }
+
+    if (!value.kioskCode) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "kioskCode is required for kiosk login.", path: ["kioskCode"] });
+    }
+  })
+  .transform((value) => compactOptionalProperties(value) as LoginRequest);
 
 export const statusChangeSchema: ZodType<StatusChangeRequest> = z
   .object({
@@ -106,7 +133,9 @@ export const userUpsertSchema: ZodType<UserUpsertInput> = z
     primaryRole: z.enum(userRoles),
     roles: z.array(z.enum(userRoles)).min(1),
     isActive: z.boolean(),
-    password: optionalTrimmedString
+    password: optionalTrimmedString,
+    kioskCode: optionalNullableTrimmedString,
+    avatarDataUrl: optionalNullableTrimmedString
   })
   .transform((value) => compactOptionalProperties(value) as UserUpsertInput);
 
@@ -226,7 +255,9 @@ export const globalSettingsSchema: ZodType<GlobalSettingsUpdateInput> = z.object
   failureThreshold: z.number().int().nonnegative(),
   uiDensity: z.enum(["compact", "comfortable"]),
   escalationProfile: z.enum(["standard", "elevated"]),
-  workflowProfile: z.enum(["default", "weekend_sensitive"])
+  workflowProfile: z.enum(["default", "weekend_sensitive"]),
+  passwordMinLength: z.number().int().min(4).max(128),
+  kioskCodeLength: z.number().int().min(4).max(24)
 });
 
 const optionalDateTimeString = z

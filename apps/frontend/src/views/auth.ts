@@ -5,27 +5,51 @@ import { escapeHtml, formatTimestamp } from "../utils.js";
 import { formatUserRoleLabel, formatUserStatusLabel, renderEmptyState, renderNotice, renderOption, renderPill, renderSectionHeader, renderUserFacts } from "./common.js";
 
 export function renderLoginSection(): string {
+  const isKioskLogin = state.loginMode === "kiosk_code";
   return `
     <form id="login-form" class="stack" data-ui-preserve-form="true">
-      <label class="field"><span>Benutzername oder E-Mail</span><input name="identifier" autocomplete="username" required /></label>
-      <label class="field">
-        <span>Passwort</span>
-        <div class="password-field">
-          <input id="login-password-input" type="password" name="password" autocomplete="current-password" required />
-          <button
-            type="button"
-            id="login-password-toggle-button"
-            class="secondary password-toggle-button"
-            data-password-visible="false"
-            aria-controls="login-password-input"
-            aria-label="Passwort anzeigen"
-            aria-pressed="false"
-          >Anzeigen</button>
-        </div>
-      </label>
-      <button type="submit">Anmelden</button>
+      <input type="hidden" name="mode" value="${state.loginMode}" />
+      <div class="login-mode-switch" role="tablist" aria-label="Anmeldeart">
+        <button
+          type="button"
+          class="secondary login-mode-button${!isKioskLogin ? " selected" : ""}"
+          data-login-mode="password"
+          aria-pressed="${!isKioskLogin}"
+        >Login + Passwort</button>
+        <button
+          type="button"
+          class="secondary login-mode-button${isKioskLogin ? " selected" : ""}"
+          data-login-mode="kiosk_code"
+          aria-pressed="${isKioskLogin}"
+        >Kiosk-Code</button>
+      </div>
+      ${isKioskLogin
+        ? `
+          <label class="field">
+            <span>Kiosk-Code</span>
+            <input name="kioskCode" inputmode="numeric" autocomplete="one-time-code" required />
+          </label>
+        `
+        : `
+          <label class="field"><span>Benutzername oder E-Mail</span><input name="identifier" autocomplete="username" required /></label>
+          <label class="field">
+            <span>Passwort</span>
+            <div class="password-field">
+              <input id="login-password-input" type="password" name="password" autocomplete="current-password" required />
+              <button
+                type="button"
+                id="login-password-toggle-button"
+                class="secondary password-toggle-button icon-only-button"
+                data-password-visible="false"
+                aria-controls="login-password-input"
+                aria-label="Passwort anzeigen"
+                aria-pressed="false"
+              >${renderEyeIcon()}</button>
+            </div>
+          </label>
+        `}
+      <button type="submit">${isKioskLogin ? "Mit Kiosk-Code anmelden" : "Anmelden"}</button>
     </form>
-    <p class="hint">Lokaler Login ueber die bestehende Identity-Schicht. Bootstrap-Logins bleiben fuer Entwicklung verfuegbar.</p>
     ${state.session ? renderUserFacts(state.session.user) : ""}
     ${state.session
       ? `
@@ -60,36 +84,24 @@ export function renderStandaloneLoginScreen(): string {
   const pendingLabel = state.pendingOperations["login"] ?? state.pendingOperations["session"] ?? null;
   return `
     <main class="shell login-shell">
-      <section class="login-shell-layout">
-        <article class="login-hero-card">
-          <p class="eyebrow">Leitstelle</p>
-          <h1>Leitstellensoftware</h1>
-          <p class="intro">Ein klarer Einstieg vor der geschuetzten Arbeitsoberflaeche. Nach dem Login bleiben Dashboard, Leitstelle, Standorte, Archiv und Einstellungen in derselben App verankert.</p>
-          <div class="actions login-shell-actions">
-            ${renderPill("Geschuetzter Zugang")}
-            ${renderPill("Keine zweite Session-Logik")}
-            <button type="button" id="theme-toggle-button" class="secondary theme-toggle-button">Theme umschalten</button>
+      <section class="login-shell-layout login-shell-layout-single">
+        <article class="login-hero-card login-unified-card">
+          <div class="actions login-shell-actions login-shell-actions-top">
+            <div>
+              <p class="eyebrow">Leitstelle</p>
+              <h1>Leitstellensoftware</h1>
+            </div>
+            <button
+              type="button"
+              id="theme-toggle-button"
+              class="secondary theme-toggle-button icon-only-button"
+              aria-label="${state.themeMode === "dark" ? "Auf helles Theme umschalten" : "Auf dunkles Theme umschalten"}"
+              title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
+            >${state.themeMode === "dark" ? "☀" : "☾"}</button>
           </div>
-          ${pendingLabel ? renderNotice(pendingLabel, "default", true) : ""}
-          <div class="login-shell-facts">
-            <article class="subcard stack compact">
-              <strong>Login</strong>
-              <p class="muted">Benutzt die vorhandenen Auth-Pfade, Token-Speicherung und Session-Hydration.</p>
-            </article>
-            <article class="subcard stack compact">
-              <strong>Kiosk-Modus</strong>
-              <p class="muted">Steht nach dem Login als Shell-Praferenz innerhalb derselben App zur Verfuegung.</p>
-            </article>
-          </div>
-        </article>
-        <article class="login-card">
-          ${renderSectionHeader("Anmelden", {
-            subtitle: "Desktop-tauglicher Einstieg fuer den Leitstellenbetrieb mit klaren Feldern, Fokus und Tastaturbedienung."
-          })}
+          ${renderSectionHeader("Anmelden", {})}
           ${renderLoginSection()}
-          <div class="login-meta">
-            <p class="muted">Der Zugang fuehrt direkt in die bestehende App-Shell. Es wird kein separater Admin- oder Kiosk-Client aufgebaut.</p>
-          </div>
+          ${pendingLabel ? renderNotice(pendingLabel, "default", true) : ""}
         </article>
       </section>
       ${state.message ? renderNotice(state.message, "success") : ""}
@@ -159,7 +171,6 @@ function renderUserAdministration(canEditUsers: boolean): string {
     <section class="stack">
       <article class="subcard stack compact">
         ${renderSectionHeader("Benutzerverwaltung", {
-          subtitle: "Benutzer werden tabellarisch verwaltet und in einer eigenen Detailansicht gepflegt. Operative Alarm- und Operator-Screens bleiben unberuehrt.",
           actions: `
             <button type="button" id="refresh-user-administration-button" class="secondary">Aktualisieren</button>
             ${canEditUsers ? `<button type="button" id="user-administration-create-button">Benutzer anlegen</button>` : ""}
@@ -184,6 +195,7 @@ function renderUserAdministration(canEditUsers: boolean): string {
           </article>
         </div>
       </article>
+      ${renderUserAccessPolicyCard(canEditUsers)}
       ${state.userAdministrationView === "detail" && selectedUser
         ? renderSelectedUserDetail(selectedUser, canEditUsers)
         : renderUserList(filteredUsers, canEditUsers)}
@@ -261,7 +273,7 @@ function renderSelectedUserDetail(user: UserAdminRecord, canEditUsers: boolean):
       })}
       <article class="subcard stack compact">
         ${renderSectionHeader("Benutzerdaten", {
-          subtitle: "Anzeige, Rollen und Aktivstatus bleiben im administrativen Bereich zentral gepflegt."
+          subtitle: ""
         })}
         <div class="site-management-table-wrap">
           <table class="site-management-detail-table">
@@ -270,6 +282,7 @@ function renderSelectedUserDetail(user: UserAdminRecord, canEditUsers: boolean):
               <tr><th>E-Mail</th><td>${escapeHtml(user.email)}</td><th>Primaerrolle</th><td>${escapeHtml(formatUserRoleLabel(user.primaryRole))}</td></tr>
               <tr><th>Aktiv/Inaktiv</th><td>${renderUserActivationPill(user)}</td><th>Operativer Status</th><td>${renderUserPresencePill(user)}</td></tr>
               <tr><th>Rollen</th><td colspan="3">${user.roles.map((role) => renderPill(formatUserRoleLabel(role))).join(" ")}</td></tr>
+              <tr><th>Kiosk-Code</th><td>${user.hasKioskCode ? "gesetzt" : "-"}</td><th>Bild</th><td>${renderUserAvatarPreview(user.avatarDataUrl, user.displayName, "user-admin-avatar-preview")}</td></tr>
               <tr><th>Letzte Aktivitaet</th><td>${formatTimestamp(user.lastStatusChangeAt)}</td><th>Erstellt</th><td>${formatTimestamp(user.createdAt)}</td></tr>
             </tbody>
           </table>
@@ -289,15 +302,42 @@ function renderSelectedUserDetail(user: UserAdminRecord, canEditUsers: boolean):
 
 function renderUserEditorForm(user: UserAdminRecord | undefined): string {
   const selectedRoles = user ? user.roles : [userAdministrationRoleOptions[0]!];
+  const accessSettings = state.overview?.globalSettings ?? {
+    monitoringIntervalSeconds: 90,
+    failureThreshold: 3,
+    uiDensity: "comfortable",
+    escalationProfile: "standard",
+    workflowProfile: "default",
+    passwordMinLength: 8,
+    kioskCodeLength: 6
+  };
   return `
     <form id="user-administration-form" class="subcard stack" data-ui-preserve-form="true">
       <input type="hidden" name="id" value="${escapeHtml(user?.id ?? "")}" />
+      <input type="hidden" name="avatarDataUrl" value="${escapeHtml(user?.avatarDataUrl ?? "")}" />
+      <input type="hidden" name="avatarRemove" value="false" />
       <label class="field"><span>Anzeigename</span><input name="displayName" value="${escapeHtml(user?.displayName ?? "")}" required /></label>
       <div class="detail-grid">
         <label class="field"><span>Benutzername</span><input name="username" value="${escapeHtml(user?.username ?? "")}" required /></label>
         <label class="field"><span>E-Mail</span><input name="email" type="email" value="${escapeHtml(user?.email ?? "")}" required /></label>
         <label class="field"><span>Primaerrolle</span><select name="primaryRole">${userAdministrationRoleOptions.map((role) => renderOption(role, formatUserRoleLabel(role), (user?.primaryRole ?? selectedRoles[0]!) === role)).join("")}</select></label>
         <label class="field"><span>Kontostatus</span><select name="isActive">${renderOption("true", "aktiv", user?.isActive !== false)}${renderOption("false", "inaktiv", user?.isActive === false)}</select></label>
+      </div>
+      <div class="detail-grid user-avatar-editor-grid">
+        <div class="field stack compact">
+          <span>Benutzerbild</span>
+          <div class="user-avatar-editor">
+            ${renderUserAvatarPreview(user?.avatarDataUrl, user?.displayName ?? "Benutzer", "user-admin-avatar-preview user-admin-avatar-preview-large")}
+            <div class="stack compact">
+              <input type="file" name="avatarFile" accept="image/*" class="user-avatar-file-input" />
+              <button type="button" class="secondary user-avatar-remove-button">Bild entfernen</button>
+            </div>
+          </div>
+        </div>
+        <label class="field">
+          <span>Kiosk-Code (optional, ${accessSettings.kioskCodeLength} Zeichen)</span>
+          <input name="kioskCode" inputmode="numeric" autocomplete="off" placeholder="${user?.hasKioskCode ? "Neu setzen oder leer lassen" : "Kiosk-Code"}" />
+        </label>
       </div>
       <fieldset class="user-administration-role-fieldset">
         <legend>Rollen</legend>
@@ -311,12 +351,12 @@ function renderUserEditorForm(user: UserAdminRecord | undefined): string {
         </div>
       </fieldset>
       <label class="field">
-        <span>${user ? "Neues Passwort (optional)" : "Initialpasswort"}</span>
+        <span>${user ? `Neues Passwort (optional, mind. ${accessSettings.passwordMinLength} Zeichen)` : `Initialpasswort (mind. ${accessSettings.passwordMinLength} Zeichen)`}</span>
         <input name="password" type="password" ${user ? "" : "required"} autocomplete="${user ? "new-password" : "new-password"}" />
       </label>
       ${user
-        ? renderNotice("Deaktivieren/Reaktivieren ist zusaetzlich als sichtbare Aktion im Detailkopf verfuegbar. Die Formularaenderung bleibt fuer groessere Aktualisierungen erhalten.", "default", true)
-        : renderNotice("Neue Benutzer werden passend zum bestehenden lokalen Login-Modell mit Initialpasswort angelegt.", "default", true)}
+        ? renderNotice("Passwort, Kiosk-Code, Bild, Rollen und Aktivstatus werden im bestehenden Benutzerpfad gepflegt.", "default", true)
+        : renderNotice("Neue Benutzer werden mit Passwort angelegt; Kiosk-Code und Bild koennen direkt mit gepflegt werden.", "default", true)}
       <div class="actions">
         <button type="submit">${user ? "Benutzer speichern" : "Benutzer anlegen"}</button>
         <button type="button" id="user-administration-cancel-edit-button" class="secondary">Abbrechen</button>
@@ -373,4 +413,67 @@ function renderUserPresencePill(user: UserAdminRecord): string {
 
 function renderUserActivationToggleButton(user: UserAdminRecord): string {
   return `<button type="button" class="secondary user-administration-toggle-active-button${user.isActive ? " user-administration-deactivate-button" : ""}" data-user-id="${user.id}">${user.isActive ? "Deaktivieren" : "Reaktivieren"}</button>`;
+}
+
+function renderUserAccessPolicyCard(canEditUsers: boolean): string {
+  const defaults = state.overview?.globalSettings ?? {
+    monitoringIntervalSeconds: 90,
+    failureThreshold: 3,
+    uiDensity: "comfortable",
+    escalationProfile: "standard",
+    workflowProfile: "default",
+    passwordMinLength: 8,
+    kioskCodeLength: 6
+  };
+
+  return canEditUsers
+    ? `
+      <article class="subcard stack compact">
+        ${renderSectionHeader("Benutzerzugang", {})}
+        <form id="global-settings-form" class="subcard stack compact" data-ui-preserve-form="true">
+          <input type="hidden" name="monitoringIntervalSeconds" value="${defaults.monitoringIntervalSeconds}" />
+          <input type="hidden" name="failureThreshold" value="${defaults.failureThreshold}" />
+          <input type="hidden" name="uiDensity" value="${defaults.uiDensity}" />
+          <input type="hidden" name="escalationProfile" value="${defaults.escalationProfile}" />
+          <input type="hidden" name="workflowProfile" value="${defaults.workflowProfile}" />
+          <div class="detail-grid">
+            <label class="field"><span>Passwortlaenge</span><input name="passwordMinLength" type="number" min="4" max="128" value="${defaults.passwordMinLength}" required /></label>
+            <label class="field"><span>Kiosk-Code-Laenge</span><input name="kioskCodeLength" type="number" min="4" max="24" value="${defaults.kioskCodeLength}" required /></label>
+          </div>
+          <button type="submit">Zugangsregeln speichern</button>
+        </form>
+      </article>
+    `
+    : `
+      <article class="subcard stack compact">
+        ${renderSectionHeader("Benutzerzugang", {})}
+        <dl class="facts compact-gap">
+          <div><dt>Passwortlaenge</dt><dd>${defaults.passwordMinLength}</dd></div>
+          <div><dt>Kiosk-Code-Laenge</dt><dd>${defaults.kioskCodeLength}</dd></div>
+        </dl>
+      </article>
+    `;
+}
+
+function renderEyeIcon(): string {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icon-eye">
+      <path d="M1.5 12s3.6-6 10.5-6 10.5 6 10.5 6-3.6 6-10.5 6S1.5 12 1.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+    </svg>
+  `.trim();
+}
+
+function renderUserAvatarPreview(avatarDataUrl: string | undefined, displayName: string, className: string): string {
+  if (avatarDataUrl) {
+    return `<img src="${escapeHtml(avatarDataUrl)}" alt="Benutzerbild ${escapeHtml(displayName)}" class="${className}" />`;
+  }
+
+  const initials = displayName
+    .split(/\s+/)
+    .filter((part) => part.length > 0)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "U";
+  return `<span class="${className} user-admin-avatar-fallback" aria-hidden="true">${escapeHtml(initials)}</span>`;
 }

@@ -18,6 +18,7 @@ export type IdentityUserRecord = {
   email: string;
   displayName: string;
   passwordHash: string;
+  kioskCodeHash?: string;
   primaryRole: UserRole;
   roles: UserRole[];
   isActive: boolean;
@@ -26,6 +27,7 @@ export type IdentityUserRecord = {
   lastStatusChangeAt: string;
   createdAt: string;
   updatedAt: string;
+  avatarDataUrl?: string;
 };
 
 export type IdentitySessionRecord = {

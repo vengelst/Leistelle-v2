@@ -58,6 +58,7 @@ export function createAdminHandlers(
         isActive: updatedCurrentUser.isActive,
         status: updatedCurrentUser.status,
         lastStatusChangeAt: updatedCurrentUser.lastStatusChangeAt,
+            ...(updatedCurrentUser.avatarDataUrl ? { avatarDataUrl: updatedCurrentUser.avatarDataUrl } : {}),
         ...(updatedCurrentUser.pauseReason ? { pauseReason: updatedCurrentUser.pauseReason } : {})
       }
     };
@@ -160,6 +161,9 @@ export function createAdminHandlers(
       }
 
       const password = normalizeOptionalField(formData.get("password"));
+      const kioskCode = normalizeOptionalField(formData.get("kioskCode"));
+      const avatarDataUrl = normalizeOptionalField(formData.get("avatarDataUrl"));
+      const avatarRemove = String(formData.get("avatarRemove") ?? "false") === "true";
       const payload: UserUpsertInput = {
         ...(userId ? { id: userId } : {}),
         username: String(formData.get("username") ?? ""),
@@ -168,7 +172,9 @@ export function createAdminHandlers(
         primaryRole: (String(formData.get("primaryRole") ?? roles[0]) as UserRole),
         roles,
         isActive: String(formData.get("isActive") ?? "true") === "true",
-        ...(password ? { password } : {})
+        ...(password ? { password } : {}),
+        ...(typeof kioskCode === "string" ? { kioskCode } : {}),
+        ...(avatarRemove ? { avatarDataUrl: null } : avatarDataUrl ? { avatarDataUrl } : {})
       };
 
       deps.setBusyState("user-administration-save", "Benutzer wird gespeichert");

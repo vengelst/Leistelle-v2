@@ -85,6 +85,11 @@ body {
   align-items: stretch;
 }
 
+.login-shell-layout-single {
+  grid-template-columns: minmax(360px, 760px);
+  justify-content: center;
+}
+
 .login-hero-card,
 .login-card {
   padding: 28px;
@@ -109,6 +114,10 @@ body {
 
 .login-shell-actions {
   align-items: center;
+}
+
+.login-shell-actions-top {
+  justify-content: space-between;
 }
 
 .login-shell-facts {
@@ -152,6 +161,16 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.icon-only-button {
+  min-width: 46px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.15rem;
 }
 
 .eyebrow,
@@ -203,6 +222,27 @@ h1 {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 10px;
+}
+
+.desktop-only-avatar {
+  display: inline-flex;
+}
+
+.user-status-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  align-self: center;
+}
+
+.user-status-avatar-fallback {
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .user-status-meta {
@@ -740,8 +780,24 @@ a.button-link {
 }
 
 .password-toggle-button {
-  min-width: 118px;
+  min-width: 46px;
   white-space: nowrap;
+}
+
+.icon-eye {
+  width: 20px;
+  height: 20px;
+}
+
+.login-mode-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.login-mode-button.selected {
+  background: rgba(155, 77, 47, 0.18);
+  color: var(--accent);
 }
 
 .field span,
@@ -1189,6 +1245,10 @@ button.secondary {
     flex-direction: column;
   }
 
+  .desktop-only-avatar {
+    display: none;
+  }
+
   .workspace-main-toolbar-actions {
     justify-items: start;
   }
@@ -1494,47 +1554,43 @@ button.secondary {
 .map-canvas {
   position: relative;
   width: 100%;
-  aspect-ratio: 10 / 7;
+  aspect-ratio: 5 / 6;
   min-height: 420px;
   overflow: hidden;
   border-radius: 18px;
 }
 
-.dach-map {
+.map-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background:
+    radial-gradient(circle at top right, rgba(155, 77, 47, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(236, 227, 210, 0.75));
+}
+
+.map-viewport:active {
+  cursor: grabbing;
+}
+
+.map-scene {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.map-base-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-}
-
-.map-grid path {
-  stroke: rgba(29, 42, 47, 0.08);
-  stroke-width: 1;
-}
-
-.country {
-  stroke: rgba(29, 42, 47, 0.18);
-  stroke-width: 2;
-}
-
-.country.germany {
-  fill: rgba(54, 95, 112, 0.12);
-}
-
-.country.austria {
-  fill: rgba(155, 77, 47, 0.1);
-}
-
-.country.switzerland {
-  fill: rgba(31, 106, 71, 0.1);
-}
-
-.map-label-layer text {
-  fill: rgba(29, 42, 47, 0.38);
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .map-marker-layer {
@@ -1740,6 +1796,39 @@ button.secondary {
 
 .theme-toggle-button {
   white-space: nowrap;
+}
+
+.user-avatar-editor-grid {
+  align-items: start;
+}
+
+.user-avatar-editor {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.user-admin-avatar-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.user-admin-avatar-preview-large {
+  width: 72px;
+  height: 72px;
+}
+
+.user-admin-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .site-plan-marker.marker-type-camera .site-plan-marker-core {

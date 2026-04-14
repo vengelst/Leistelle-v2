@@ -94,12 +94,16 @@ export function renderUserFacts(user: AuthenticatedUser): string {
 export function renderUserStatusBar(user: AuthenticatedUser): string {
   const statusBusy = Boolean(state.pendingOperations.status);
   const logoutBusy = Boolean(state.pendingOperations.logout);
+  const avatar = user.avatarDataUrl
+    ? `<img src="${escapeHtml(user.avatarDataUrl)}" alt="Benutzerbild ${escapeHtml(user.displayName)}" class="user-status-avatar desktop-only-avatar" />`
+    : `<span class="user-status-avatar user-status-avatar-fallback desktop-only-avatar" aria-hidden="true">${escapeHtml(resolveUserInitials(user.displayName))}</span>`;
 
   return `
     <section class="user-status-bar" aria-label="Aktueller Benutzerstatus">
       <div class="user-status-copy">
         <p class="eyebrow">Aktive Session</p>
         <div class="user-status-identity">
+          ${avatar}
           <strong>${escapeHtml(user.displayName)}</strong>
           <span class="muted">@${escapeHtml(user.username)}</span>
         </div>
@@ -128,6 +132,15 @@ export function renderUserStatusBar(user: AuthenticatedUser): string {
       </div>
     </section>
   `;
+}
+
+function resolveUserInitials(displayName: string): string {
+  return displayName
+    .split(/\s+/)
+    .filter((part) => part.length > 0)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "U";
 }
 
 export function isAutoAssignedAlarmDetail(detail: AlarmCaseDetail | null): boolean {
@@ -1064,18 +1077,20 @@ function renderSelectedSitePlanMarkerContext(
 
 export function projectMarkerPosition(latitude: number, longitude: number): { left: number; top: number } {
   const bounds = {
-    minLongitude: 5,
-    maxLongitude: 17.5,
-    minLatitude: 45.3,
-    maxLatitude: 55.8
+    minLongitude: 5.4,
+    maxLongitude: 15.6,
+    minLatitude: 47.0,
+    maxLatitude: 55.2
   };
 
-  const left = ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude)) * 100;
-  const top = 100 - ((latitude - bounds.minLatitude) / (bounds.maxLatitude - bounds.minLatitude)) * 100;
+  const normalizedLeft = ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude));
+  const normalizedTop = 1 - ((latitude - bounds.minLatitude) / (bounds.maxLatitude - bounds.minLatitude));
+  const left = 18 + (normalizedLeft * 64);
+  const top = 6 + (normalizedTop * 88);
 
   return {
-    left: clamp(left, 4, 96),
-    top: clamp(top, 8, 92)
+    left: clamp(left, 18, 82),
+    top: clamp(top, 6, 94)
   };
 }
 

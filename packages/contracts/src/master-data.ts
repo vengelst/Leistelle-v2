@@ -57,6 +57,8 @@ export type GlobalMasterDataSettings = {
   uiDensity: "compact" | "comfortable";
   escalationProfile: "standard" | "elevated";
   workflowProfile: "default" | "weekend_sensitive";
+  passwordMinLength: number;
+  kioskCodeLength: number;
 };
 
 export type SiteSettings = {

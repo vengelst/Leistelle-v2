@@ -75,15 +75,17 @@ export async function seedDatabase(database: DatabaseClient, bootstrapPassword: 
     await client.query(
       `
         insert into global_settings(
-          id, monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, updated_at
+          id, monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, password_min_length, kiosk_code_length, updated_at
         )
-        values (1, 90, 3, 'comfortable', 'standard', 'default', now())
+        values (1, 90, 3, 'comfortable', 'standard', 'default', 8, 6, now())
         on conflict (id) do update set
           monitoring_interval_seconds = excluded.monitoring_interval_seconds,
           failure_threshold = excluded.failure_threshold,
           ui_density = excluded.ui_density,
           escalation_profile = excluded.escalation_profile,
           workflow_profile = excluded.workflow_profile,
+          password_min_length = excluded.password_min_length,
+          kiosk_code_length = excluded.kiosk_code_length,
           updated_at = now()
       `
     );

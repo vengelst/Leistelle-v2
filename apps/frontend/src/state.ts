@@ -25,6 +25,7 @@ import type {
   ReportingOverview,
   ReportingPeriod,
   SessionInfo,
+  LoginMode,
   ShiftPlanningFilter,
   ShiftPlanningOverview,
   ShiftPlanningPeriod,
@@ -71,6 +72,9 @@ export type FrontendState = {
   selectedSiteId?: string;
   siteMarkers: SiteMapMarkerCollection | null;
   selectedMapSiteId?: string;
+  mapZoom: number;
+  mapPanX: number;
+  mapPanY: number;
   siteManagementView: SiteManagementView;
   selectedSiteManagementSection: SiteManagementSection;
   siteManagementSearch: string;
@@ -94,6 +98,7 @@ export type FrontendState = {
   leitstelleMode: LeitstelleMode;
   leitstelleNavigationCollapsed: boolean;
   themeMode: ThemeMode;
+  loginMode: LoginMode;
   kioskMode: boolean;
   alarmSoundEnabled: boolean;
   alarmSoundIncludeNormalPriority: boolean;
@@ -152,6 +157,9 @@ export const state: FrontendState = {
   selectedMonitoringDetail: null,
   pendingOperations: {},
   siteMarkers: null,
+  mapZoom: 1,
+  mapPanX: 0,
+  mapPanY: 0,
   siteManagementView: "list",
   selectedSiteManagementSection: "overview",
   siteManagementSearch: "",
@@ -171,6 +179,7 @@ export const state: FrontendState = {
   leitstelleMode: "alarms",
   leitstelleNavigationCollapsed: false,
   themeMode: "light",
+  loginMode: "password",
   kioskMode: false,
   alarmSoundEnabled: true,
   alarmSoundIncludeNormalPriority: false,
@@ -207,6 +216,9 @@ export function resetSessionScopedState(): void {
   delete state.selectedMonitoringDisturbanceId;
   delete state.selectedSiteId;
   state.siteMarkers = null;
+  state.mapZoom = 1;
+  state.mapPanX = 0;
+  state.mapPanY = 0;
   state.siteManagementView = "list";
   state.selectedSiteManagementSection = "overview";
   state.siteManagementSearch = "";

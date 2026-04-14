@@ -6,11 +6,13 @@ import type { AuthenticatedUser, UserAdminRecord, UserRole, UserStatus, UserUpse
 import { AppError } from "@leitstelle/observability";
 
 import type { DatabaseClient } from "../../db/client.js";
-import { hashPassword } from "./passwords.js";
+import { hashPassword, verifyPassword } from "./passwords.js";
 import type { IdentityUserRecord } from "./types.js";
 
 export type IdentityUserStore = {
   findByIdentifier: (identifier: string) => Promise<IdentityUserRecord | undefined>;
+  findByKioskCode: (kioskCode: string) => Promise<IdentityUserRecord | undefined>;
+  getCredentialPolicy: () => Promise<{ passwordMinLength: number; kioskCodeLength: number }>;
   getById: (userId: string) => Promise<IdentityUserRecord | undefined>;
   listUsers: () => Promise<UserAdminRecord[]>;
   listActiveOperators: () => Promise<IdentityUserRecord[]>;
@@ -27,6 +29,7 @@ type UserRow = {
   email: string;
   display_name: string;
   password_hash: string;
+  kiosk_code_hash: string | null;
   primary_role: string;
   roles: string[];
   is_active: boolean;
@@ -35,6 +38,12 @@ type UserRow = {
   last_status_change_at: string;
   created_at: string;
   updated_at: string;
+  avatar_data_url: string | null;
+};
+
+type IdentityCredentialPolicyRow = {
+  password_min_length: number;
+  kiosk_code_length: number;
 };
 
 export function createIdentityUserStore(database: DatabaseClient): IdentityUserStore {
@@ -49,6 +58,7 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.email,
             u.display_name,
             u.password_hash,
+            u.kiosk_code_hash,
             u.primary_role,
             u.is_active,
             array_remove(array_agg(ur.role_key), null) as roles,
@@ -56,7 +66,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.current_pause_reason,
             u.last_status_change_at,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            u.avatar_data_url
           from users u
           left join user_roles ur on ur.user_id = u.id
           where lower(u.username) = $1 or lower(u.email) = $1
@@ -67,6 +78,54 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
 
       return result.rows[0] ? toUserRecord(result.rows[0]) : undefined;
     },
+    async findByKioskCode(kioskCode) {
+      const normalized = kioskCode.trim();
+      if (normalized.length === 0) {
+        return undefined;
+      }
+
+      const result = await database.query<UserRow>(
+        `
+          select
+            u.id,
+            u.username,
+            u.email,
+            u.display_name,
+            u.password_hash,
+            u.kiosk_code_hash,
+            u.primary_role,
+            u.is_active,
+            array_remove(array_agg(ur.role_key), null) as roles,
+            u.current_status,
+            u.current_pause_reason,
+            u.last_status_change_at,
+            u.created_at,
+            u.updated_at,
+            u.avatar_data_url
+          from users u
+          left join user_roles ur on ur.user_id = u.id
+          where u.kiosk_code_hash is not null
+            and u.is_active = true
+          group by u.id
+          order by u.display_name asc
+        `
+      );
+
+      return result.rows
+        .map(toUserRecord)
+        .find((record) => Boolean(record.kioskCodeHash && verifyPassword(normalized, record.kioskCodeHash)));
+    },
+    async getCredentialPolicy() {
+      const result = await database.query<IdentityCredentialPolicyRow>(
+        "select password_min_length, kiosk_code_length from global_settings where id = 1"
+      );
+      const row = result.rows[0];
+
+      return {
+        passwordMinLength: row?.password_min_length ?? 8,
+        kioskCodeLength: row?.kiosk_code_length ?? 6
+      };
+    },
     async getById(userId) {
       const result = await database.query<UserRow>(
         `
@@ -76,6 +135,7 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.email,
             u.display_name,
             u.password_hash,
+            u.kiosk_code_hash,
             u.primary_role,
             u.is_active,
             array_remove(array_agg(ur.role_key), null) as roles,
@@ -83,7 +143,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.current_pause_reason,
             u.last_status_change_at,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            u.avatar_data_url
           from users u
           left join user_roles ur on ur.user_id = u.id
           where u.id = $1
@@ -103,6 +164,7 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.email,
             u.display_name,
             u.password_hash,
+            u.kiosk_code_hash,
             u.primary_role,
             u.is_active,
             array_remove(array_agg(ur.role_key), null) as roles,
@@ -110,7 +172,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.current_pause_reason,
             u.last_status_change_at,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            u.avatar_data_url
           from users u
           join user_roles role_filter on role_filter.user_id = u.id and role_filter.role_key = 'operator'
           left join user_roles ur on ur.user_id = u.id
@@ -133,6 +196,7 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.email,
             u.display_name,
             u.password_hash,
+            u.kiosk_code_hash,
             u.primary_role,
             u.is_active,
             array_remove(array_agg(ur.role_key), null) as roles,
@@ -140,7 +204,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
             u.current_pause_reason,
             u.last_status_change_at,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            u.avatar_data_url
           from users u
           left join user_roles ur on ur.user_id = u.id
           group by u.id
@@ -166,6 +231,16 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
         const passwordHash = input.password?.trim()
           ? hashPassword(input.password.trim())
           : existingUser?.passwordHash;
+        const kioskCodeHash = input.kioskCode === null
+          ? null
+          : input.kioskCode?.trim()
+            ? hashPassword(input.kioskCode.trim())
+            : existingUser?.kioskCodeHash ?? null;
+        const avatarDataUrl = input.avatarDataUrl === null
+          ? null
+          : input.avatarDataUrl?.trim()
+            ? input.avatarDataUrl.trim()
+            : existingUser?.avatarDataUrl ?? null;
 
         if (!passwordHash) {
           throw new AppError("Initial password is required for new users.", {
@@ -185,10 +260,12 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                     email = $3,
                     display_name = $4,
                     password_hash = $5,
-                    primary_role = $6,
-                    is_active = $7,
-                    current_status = case when $7 then current_status else 'offline' end,
-                    current_pause_reason = case when $7 then current_pause_reason else null end,
+                    kiosk_code_hash = $6,
+                    avatar_data_url = $7,
+                    primary_role = $8,
+                    is_active = $9,
+                    current_status = case when $9 then current_status else 'offline' end,
+                    current_pause_reason = case when $9 then current_pause_reason else null end,
                     updated_at = now()
                   where id = $1
                   returning
@@ -197,13 +274,15 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                     email,
                     display_name,
                     password_hash,
+                    kiosk_code_hash,
                     primary_role,
                     is_active,
                     current_status,
                     current_pause_reason,
                     last_status_change_at,
                     created_at,
-                    updated_at
+                    updated_at,
+                    avatar_data_url
                 `,
                 [
                   existingUser.id,
@@ -211,6 +290,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                   normalizedEmail,
                   input.displayName.trim(),
                   passwordHash,
+                  kioskCodeHash,
+                  avatarDataUrl,
                   input.primaryRole,
                   input.isActive
                 ]
@@ -223,6 +304,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                     email,
                     display_name,
                     password_hash,
+                    kiosk_code_hash,
+                    avatar_data_url,
                     primary_role,
                     is_active,
                     current_status,
@@ -231,20 +314,22 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                     created_at,
                     updated_at
                   )
-                  values ($1, $2, $3, $4, $5, $6, $7, 'offline', null, now(), now(), now())
+                  values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'offline', null, now(), now(), now())
                   returning
                     id,
                     username,
                     email,
                     display_name,
                     password_hash,
+                    kiosk_code_hash,
                     primary_role,
                     is_active,
                     current_status,
                     current_pause_reason,
                     last_status_change_at,
                     created_at,
-                    updated_at
+                    updated_at,
+                    avatar_data_url
                 `,
                 [
                   input.id ?? randomUUID(),
@@ -252,6 +337,8 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
                   normalizedEmail,
                   input.displayName.trim(),
                   passwordHash,
+                  kioskCodeHash,
+                  avatarDataUrl,
                   input.primaryRole,
                   input.isActive
                 ]
@@ -318,13 +405,15 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
               email,
               display_name,
               password_hash,
+              kiosk_code_hash,
               primary_role,
               is_active,
               current_status,
               current_pause_reason,
               last_status_change_at,
               created_at,
-              updated_at
+              updated_at,
+              avatar_data_url
           `,
           [userId, isActive]
         );
@@ -371,13 +460,15 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
               email,
               display_name,
               password_hash,
+              kiosk_code_hash,
               primary_role,
               is_active,
               current_status,
               current_pause_reason,
               last_status_change_at,
               created_at,
-              updated_at
+              updated_at,
+              avatar_data_url
           `,
           [userId, status, pauseReason ?? null]
         );
@@ -423,6 +514,10 @@ export function createIdentityUserStore(database: DatabaseClient): IdentityUserS
         user.pauseReason = record.pauseReason;
       }
 
+      if (record.avatarDataUrl) {
+        user.avatarDataUrl = record.avatarDataUrl;
+      }
+
       return user;
     },
     toUserAdminRecord(record) {
@@ -438,13 +533,15 @@ function toUserRecord(row: UserRow): IdentityUserRecord {
     email: row.email,
     displayName: row.display_name,
     passwordHash: row.password_hash,
+    ...(row.kiosk_code_hash ? { kioskCodeHash: row.kiosk_code_hash } : {}),
     primaryRole: row.primary_role as IdentityUserRecord["primaryRole"],
     roles: row.roles as IdentityUserRecord["roles"],
     isActive: row.is_active,
     status: row.current_status as IdentityUserRecord["status"],
     lastStatusChangeAt: row.last_status_change_at,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    ...(row.avatar_data_url ? { avatarDataUrl: row.avatar_data_url } : {})
   };
 
   if (row.current_pause_reason) {
@@ -466,7 +563,9 @@ function toUserAdminRecord(record: IdentityUserRecord): UserAdminRecord {
     status: record.status,
     lastStatusChangeAt: record.lastStatusChangeAt,
     createdAt: record.createdAt,
-    updatedAt: record.updatedAt
+    updatedAt: record.updatedAt,
+    hasKioskCode: Boolean(record.kioskCodeHash),
+    ...(record.avatarDataUrl ? { avatarDataUrl: record.avatarDataUrl } : {})
   };
 
   if (record.pauseReason) {
@@ -507,6 +606,7 @@ async function loadUserForUpdate(client: PoolClient, userId: string): Promise<Id
         u.email,
         u.display_name,
         u.password_hash,
+        u.kiosk_code_hash,
         u.primary_role,
         u.is_active,
         array_remove(array_agg(ur.role_key), null) as roles,
@@ -514,7 +614,8 @@ async function loadUserForUpdate(client: PoolClient, userId: string): Promise<Id
         u.current_pause_reason,
         u.last_status_change_at,
         u.created_at,
-        u.updated_at
+        u.updated_at,
+        u.avatar_data_url
       from users u
       left join user_roles ur on ur.user_id = u.id
       where u.id = $1

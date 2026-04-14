@@ -31,6 +31,8 @@ type GlobalSettingsRow = {
   ui_density: "compact" | "comfortable";
   escalation_profile: "standard" | "elevated";
   workflow_profile: "default" | "weekend_sensitive";
+  password_min_length: number;
+  kiosk_code_length: number;
 };
 
 type CustomerRow = {
@@ -599,24 +601,28 @@ export function createMasterDataStore(database: DatabaseClient): MasterDataStore
       const result = await database.query<GlobalSettingsRow>(
         `
           insert into global_settings(
-            id, monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, updated_at
+            id, monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, password_min_length, kiosk_code_length, updated_at
           )
-          values (1, $1, $2, $3, $4, $5, now())
+          values (1, $1, $2, $3, $4, $5, $6, $7, now())
           on conflict (id) do update set
             monitoring_interval_seconds = excluded.monitoring_interval_seconds,
             failure_threshold = excluded.failure_threshold,
             ui_density = excluded.ui_density,
             escalation_profile = excluded.escalation_profile,
             workflow_profile = excluded.workflow_profile,
+            password_min_length = excluded.password_min_length,
+            kiosk_code_length = excluded.kiosk_code_length,
             updated_at = now()
-          returning monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile
+          returning monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, password_min_length, kiosk_code_length
         `,
         [
           input.monitoringIntervalSeconds,
           input.failureThreshold,
           input.uiDensity,
           input.escalationProfile,
-          input.workflowProfile
+          input.workflowProfile,
+          input.passwordMinLength,
+          input.kioskCodeLength
         ]
       );
 
@@ -855,7 +861,7 @@ function groupBy<TValue>(values: TValue[], getKey: (value: TValue) => string): M
 
 async function loadGlobalSettings(database: DatabaseClient): Promise<GlobalMasterDataSettings> {
   const result = await database.query<GlobalSettingsRow>(
-    "select monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile from global_settings where id = 1"
+    "select monitoring_interval_seconds, failure_threshold, ui_density, escalation_profile, workflow_profile, password_min_length, kiosk_code_length from global_settings where id = 1"
   );
   const row = result.rows[0];
 
@@ -875,7 +881,9 @@ function toGlobalSettings(row: GlobalSettingsRow): GlobalMasterDataSettings {
     failureThreshold: row.failure_threshold,
     uiDensity: row.ui_density,
     escalationProfile: row.escalation_profile,
-    workflowProfile: row.workflow_profile
+    workflowProfile: row.workflow_profile,
+    passwordMinLength: row.password_min_length,
+    kioskCodeLength: row.kiosk_code_length
   };
 }
 

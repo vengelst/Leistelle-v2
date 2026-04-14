@@ -1,6 +1,6 @@
 import type { AppHandlers } from "../actions/events.js";
 import type { HandlerRuntime } from "../actions/handler-runtime.js";
-import type { LoginResponse, SessionInfo } from "@leitstelle/contracts";
+import type { LoginMode, LoginResponse, SessionInfo } from "@leitstelle/contracts";
 
 import { apiRequest, storageKey } from "../api.js";
 import { resetSessionScopedState, state } from "../state.js";
@@ -14,8 +14,12 @@ type SessionHandlerDeps = HandlerRuntime & {
 
 export function createSessionHandlers(
   deps: SessionHandlerDeps
-): Pick<AppHandlers, "handleLogin" | "handleLogout"> & { hydrateSession: () => Promise<void> } {
+): Pick<AppHandlers, "handleLogin" | "handleLogout" | "handleLoginModeChange"> & { hydrateSession: () => Promise<void> } {
   return {
+    handleLoginModeChange(mode: string): void {
+      state.loginMode = mode === "kiosk_code" ? "kiosk_code" : "password";
+      deps.render();
+    },
     async hydrateSession(): Promise<void> {
       const token = localStorage.getItem(storageKey);
       if (!token) return;
@@ -41,13 +45,19 @@ export function createSessionHandlers(
       const form = event.currentTarget;
       if (!(form instanceof HTMLFormElement)) return;
       const formData = new FormData(form);
+      const loginMode = (String(formData.get("mode") ?? state.loginMode) === "kiosk_code" ? "kiosk_code" : "password") as LoginMode;
       deps.setBusyState("login", "Login laeuft");
       try {
         const response = await apiRequest<LoginResponse>("/api/v1/auth/login", {
           method: "POST",
           body: JSON.stringify({
-            identifier: String(formData.get("identifier") ?? ""),
-            password: String(formData.get("password") ?? "")
+            mode: loginMode,
+            ...(loginMode === "kiosk_code"
+              ? { kioskCode: String(formData.get("kioskCode") ?? "") }
+              : {
+                  identifier: String(formData.get("identifier") ?? ""),
+                  password: String(formData.get("password") ?? "")
+                })
           })
         });
         deps.resetAlarmSoundTracking();

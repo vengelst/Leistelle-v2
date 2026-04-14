@@ -79,35 +79,66 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
     return session;
   };
 
+  const resolvePasswordLoginUser = async (identifier: string, password: string) => {
+    if (identifier.length === 0 || password.length === 0) {
+      throw new AppError("Identifier and password are required.", {
+        status: 400,
+        code: "AUTH_LOGIN_INVALID"
+      });
+    }
+
+    const user = await input.users.findByIdentifier(identifier);
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      return undefined;
+    }
+
+    return user;
+  };
+
+  const resolveKioskLoginUser = async (kioskCode: string, kioskCodeLength: number) => {
+    if (kioskCode.length === 0) {
+      throw new AppError("Kiosk code is required.", {
+        status: 400,
+        code: "AUTH_KIOSK_CODE_REQUIRED"
+      });
+    }
+
+    if (kioskCode.length !== kioskCodeLength) {
+      throw new AppError("Kiosk code has an invalid length.", {
+        status: 400,
+        code: "AUTH_KIOSK_CODE_LENGTH_INVALID"
+      });
+    }
+
+    return await input.users.findByKioskCode(kioskCode);
+  };
+
   return {
     async login(credentials: LoginInput, requestId: string) {
-      const identifier = credentials.identifier.trim();
-      const password = credentials.password;
+      const loginMode = credentials.mode;
+      const identifier = credentials.identifier?.trim() ?? "";
+      const password = credentials.password ?? "";
+      const kioskCode = credentials.kioskCode?.trim() ?? "";
+      const { kioskCodeLength } = await input.users.getCredentialPolicy();
+      const user = loginMode === "kiosk_code"
+        ? await resolveKioskLoginUser(kioskCode, kioskCodeLength)
+        : await resolvePasswordLoginUser(identifier, password);
 
-      if (identifier.length === 0 || password.length === 0) {
-        throw new AppError("Identifier and password are required.", {
-          status: 400,
-          code: "AUTH_LOGIN_INVALID"
-        });
-      }
-
-      const user = await input.users.findByIdentifier(identifier);
-
-      if (!user || !verifyPassword(password, user.passwordHash)) {
+      if (!user) {
         await audit(
           {
             category: "identity.authentication",
             action: "auth.login.failed",
             outcome: "failure",
-            subjectId: identifier,
+            subjectId: loginMode === "kiosk_code" ? "kiosk_code" : identifier,
             metadata: {
-              identifier
+              ...(loginMode === "kiosk_code" ? { mode: "kiosk_code" } : { identifier, mode: "password" })
             }
           },
           requestId
         );
 
-        input.logger.warn("auth.login.failed", { identifier });
+        input.logger.warn("auth.login.failed", loginMode === "kiosk_code" ? { mode: loginMode } : { identifier, mode: loginMode });
 
         throw new AppError("Invalid credentials.", {
           status: 401,
@@ -144,6 +175,7 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
           actorId: user.id,
           subjectId: user.id,
           metadata: {
+            loginMode,
             primaryRole: user.primaryRole,
             roles: user.roles
           }
@@ -183,7 +215,9 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
     },
     async upsertUser(token, userInput, requestId) {
       const session = await requireUserAdministrationWriter(token);
+      const credentialPolicy = await input.users.getCredentialPolicy();
       assertAllowedUserMutation(session.user.id, session.user.roles, session.user.primaryRole, userInput);
+      assertCredentialPolicy(userInput, credentialPolicy);
       const updated = await input.users.upsertUser({
         ...userInput,
         roles: normalizeRoles(userInput.roles)
@@ -198,7 +232,9 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
           metadata: {
             primaryRole: updated.primaryRole,
             roles: updated.roles,
-            isActive: updated.isActive
+            isActive: updated.isActive,
+            hasKioskCode: Boolean(updated.kioskCodeHash),
+            hasAvatar: Boolean(updated.avatarDataUrl)
           }
         },
         requestId
@@ -401,6 +437,41 @@ function assertAllowedUserActivation(actorUserId: string, targetUserId: string, 
 
 function normalizeRoles(roles: readonly UserRole[]): UserRole[] {
   return [...new Set(roles)].sort() as UserRole[];
+}
+
+function assertCredentialPolicy(
+  input: UserUpsertInput,
+  policy: { passwordMinLength: number; kioskCodeLength: number }
+): void {
+  if (input.password?.trim() && input.password.trim().length < policy.passwordMinLength) {
+    throw new AppError(`Passwort muss mindestens ${policy.passwordMinLength} Zeichen lang sein.`, {
+      status: 400,
+      code: "IDENTITY_PASSWORD_TOO_SHORT"
+    });
+  }
+
+  if (typeof input.kioskCode === "string" && input.kioskCode.trim().length !== policy.kioskCodeLength) {
+    throw new AppError(`Kiosk-Code muss genau ${policy.kioskCodeLength} Zeichen lang sein.`, {
+      status: 400,
+      code: "IDENTITY_KIOSK_CODE_LENGTH_INVALID"
+    });
+  }
+
+  if (typeof input.avatarDataUrl === "string") {
+    const normalized = input.avatarDataUrl.trim();
+    if (normalized.length > 0 && !normalized.startsWith("data:image/")) {
+      throw new AppError("Benutzerbild muss als Bilddaten-URL uebergeben werden.", {
+        status: 400,
+        code: "IDENTITY_AVATAR_INVALID"
+      });
+    }
+    if (normalized.length > 350000) {
+      throw new AppError("Benutzerbild ist zu gross. Bitte ein kleineres Bild verwenden.", {
+        status: 400,
+        code: "IDENTITY_AVATAR_TOO_LARGE"
+      });
+    }
+  }
 }
 
 function sameRoleSet(left: readonly UserRole[], right: readonly UserRole[]): boolean {

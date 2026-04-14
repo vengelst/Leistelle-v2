@@ -685,6 +685,7 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       toggleAlarmSound: () => undefined,
       toggleAlarmSoundIncludeNormalPriority: () => undefined,
       testAlarmSound: async () => undefined,
+      handleLoginModeChange: () => undefined,
       handleLogin: async () => undefined,
       handleLogout: async () => undefined,
       fetchOverview: async () => undefined,

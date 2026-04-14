@@ -51,22 +51,22 @@ const settingsSections: SettingsSectionDescriptor[] = [
   {
     id: "overview",
     label: "Uebersicht",
-    description: "Einstieg in die administrativen Teilbereiche mit kurzer Einordnung."
+    description: ""
   },
   {
     id: "general",
     label: "Allgemein",
-    description: "Globale Leitstellenkonfiguration, Session-Kontext und Einsatzanweisungen."
+    description: ""
   },
   {
     id: "users",
     label: "Benutzer",
-    description: "Benutzerkonten, Zugriff und Statuswechsel auf Basis der vorhandenen Identity-Struktur."
+    description: ""
   },
   {
     id: "roles",
     label: "Admin / Rollen & Rechte",
-    description: "Administrativer Rahmen fuer Zugang, Rollenmodell und Berechtigungsstruktur ohne zweite Rechtewelt."
+    description: ""
   }
 ];
 
@@ -180,7 +180,7 @@ export function renderSettingsSection(): string {
     <section class="stack">
       <article class="subcard stack compact">
         ${renderSectionHeader("Einstellungsbereiche", {
-          subtitle: "Einstellungen ist die zentrale administrative Fuehrung fuer Benutzer, Admin-/Rechterahmen, allgemeine Konfiguration und Standortstammdaten."
+          subtitle: ""
         })}
         <div class="site-management-section-nav settings-section-nav">
           ${settingsSections.map((section) => `
@@ -882,6 +882,8 @@ function renderSettingsOverview(overview: MasterDataOverview): string {
         <div><dt>UI-Dichte</dt><dd>${overview.globalSettings.uiDensity}</dd></div>
         <div><dt>Eskalationsprofil</dt><dd>${overview.globalSettings.escalationProfile}</dd></div>
         <div><dt>Workflow-Profil</dt><dd>${overview.globalSettings.workflowProfile}</dd></div>
+        <div><dt>Passwortlaenge</dt><dd>${overview.globalSettings.passwordMinLength}</dd></div>
+        <div><dt>Kiosk-Code-Laenge</dt><dd>${overview.globalSettings.kioskCodeLength}</dd></div>
       </dl>
     </section>
     <section class="stack section">
@@ -932,7 +934,7 @@ function renderSelectedSettingsSection(
     case "users":
       return renderSettingsSubpage(
         "Benutzer",
-        "Die vorhandene Benutzerverwaltung bleibt unveraendert und wird hier nur klar unter Einstellungen gebuendelt.",
+        "",
         renderSettingsUserSection()
       );
     case "roles":
@@ -951,7 +953,7 @@ function renderSettingsLanding(overview: MasterDataOverview | null, canEditSetti
   return `
     <article class="subcard stack">
       ${renderSectionHeader("Einstellungen", {
-        subtitle: "Die Startseite buendelt die vorhandenen administrativen und stammdatenbezogenen Bereiche unter einer klaren Hauptfuehrung."
+        subtitle: ""
       })}
       <div class="settings-overview-grid">
         ${settingsSections
@@ -959,7 +961,7 @@ function renderSettingsLanding(overview: MasterDataOverview | null, canEditSetti
           .map((section) => `
             <article class="subcard stack compact settings-overview-card">
               <strong>${section.label}</strong>
-              <p class="muted">${section.description}</p>
+              ${section.description ? `<p class="muted">${section.description}</p>` : ""}
               <div class="actions">
                 <button type="button" class="secondary settings-overview-link" data-settings-section="${section.id}">Bereich oeffnen</button>
               </div>
@@ -1002,7 +1004,15 @@ function renderGeneralSettingsContent(overview: MasterDataOverview | null, canEd
 
 function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEditSettings: boolean): string {
   const siteOptions = renderSiteOptions(overview);
-  const globalDefaults = overview?.globalSettings ?? { monitoringIntervalSeconds: 90, failureThreshold: 3, uiDensity: "comfortable", escalationProfile: "standard", workflowProfile: "default" };
+  const globalDefaults = overview?.globalSettings ?? {
+    monitoringIntervalSeconds: 90,
+    failureThreshold: 3,
+    uiDensity: "comfortable",
+    escalationProfile: "standard",
+    workflowProfile: "default",
+    passwordMinLength: 8,
+    kioskCodeLength: 6
+  };
   return `
     <section class="forms-grid">
       ${canEditSettings
@@ -1014,6 +1024,8 @@ function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEdit
             <label class="field"><span>UI-Dichte</span><select name="uiDensity">${renderOptions(["comfortable", "compact"], globalDefaults.uiDensity)}</select></label>
             <label class="field"><span>Eskalationsprofil</span><select name="escalationProfile">${renderOptions(["standard", "elevated"], globalDefaults.escalationProfile)}</select></label>
             <label class="field"><span>Workflow-Profil</span><select name="workflowProfile">${renderOptions(["default", "weekend_sensitive"], globalDefaults.workflowProfile)}</select></label>
+            <label class="field"><span>Passwortlaenge</span><input name="passwordMinLength" type="number" min="4" max="128" value="${globalDefaults.passwordMinLength}" required /></label>
+            <label class="field"><span>Kiosk-Code-Laenge</span><input name="kioskCodeLength" type="number" min="4" max="24" value="${globalDefaults.kioskCodeLength}" required /></label>
             <button type="submit">Globale Einstellungen speichern</button>
           </form>
         `
@@ -1027,6 +1039,8 @@ function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEdit
               <div><dt>UI-Dichte</dt><dd>${escapeHtml(globalDefaults.uiDensity)}</dd></div>
               <div><dt>Eskalationsprofil</dt><dd>${escapeHtml(globalDefaults.escalationProfile)}</dd></div>
               <div><dt>Workflow-Profil</dt><dd>${escapeHtml(globalDefaults.workflowProfile)}</dd></div>
+              <div><dt>Passwortlaenge</dt><dd>${globalDefaults.passwordMinLength}</dd></div>
+              <div><dt>Kiosk-Code-Laenge</dt><dd>${globalDefaults.kioskCodeLength}</dd></div>
             </dl>
           </article>
         `}

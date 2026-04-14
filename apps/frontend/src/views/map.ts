@@ -36,41 +36,18 @@ export function renderMapSection(): string {
         </div>
       </div>
       <div class="map-layout">
-        <section class="map-stage" aria-label="DACH-Karte">
+        <section class="map-stage" aria-label="Deutschlandkarte">
           <div class="map-canvas">
-            <svg class="dach-map" viewBox="0 0 1000 700" preserveAspectRatio="none" role="img" aria-label="DACH-Raum mit Standortmarkern">
-              <defs>
-                <linearGradient id="mapSurface" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(255,255,255,0.95)" />
-                  <stop offset="100%" stop-color="rgba(238,230,214,0.9)" />
-                </linearGradient>
-              </defs>
-              <rect x="0" y="0" width="1000" height="700" rx="28" fill="url(#mapSurface)"></rect>
-              <g class="map-grid">
-                <path d="M100 90 H920" />
-                <path d="M100 220 H920" />
-                <path d="M100 350 H920" />
-                <path d="M100 480 H920" />
-                <path d="M100 610 H920" />
-                <path d="M180 70 V630" />
-                <path d="M350 70 V630" />
-                <path d="M520 70 V630" />
-                <path d="M690 70 V630" />
-                <path d="M860 70 V630" />
-              </g>
-              <g class="map-country-layer">
-                <path class="country germany" d="M410 70 L520 72 L616 115 L684 188 L668 268 L707 350 L660 452 L604 532 L520 585 L440 565 L372 602 L292 566 L254 478 L270 386 L305 287 L360 205 L387 121 Z" />
-                <path class="country austria" d="M428 488 L514 460 L634 475 L745 518 L670 556 L546 575 L430 562 L355 530 Z" />
-                <path class="country switzerland" d="M264 478 L345 458 L438 474 L422 523 L333 538 L252 516 Z" />
-              </g>
-              <g class="map-label-layer">
-                <text x="457" y="290">DE</text>
-                <text x="548" y="540">AT</text>
-                <text x="314" y="515">CH</text>
-              </g>
-            </svg>
-            <div class="map-marker-layer">
-              ${markerCollection.markers.map((marker) => renderMapMarker(marker, selectedMarker?.siteId === marker.siteId)).join("")}
+            <div class="map-viewport" data-map-viewport="true" aria-label="Deutschlandkarte">
+              <div
+                class="map-scene"
+                style="transform: translate(${state.mapPanX}px, ${state.mapPanY}px) scale(${state.mapZoom});"
+              >
+                <img class="map-base-image" src="./src/assets/maps/germany.svg" alt="Deutschlandkarte" draggable="false" />
+                <div class="map-marker-layer">
+                  ${markerCollection.markers.map((marker) => renderMapMarker(marker, selectedMarker?.siteId === marker.siteId)).join("")}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -124,7 +101,7 @@ export function renderMapSelectionPanel(marker: SiteMapMarkerCollection["markers
         <div><dt>Offene Alarme</dt><dd>${marker.openAlarmCount}</dd></div>
         <div><dt>Offene Stoerungen</dt><dd>${marker.openDisturbanceCount}</dd></div>
         <div><dt>Technikstatus seit</dt><dd>${formatTimestamp(marker.technicalStatus.updatedAt)}</dd></div>
-        <div><dt>Region-Hinweis</dt><dd>DACH</dd></div>
+              <div><dt>Region-Hinweis</dt><dd>Deutschland</dd></div>
       </dl>
       <div class="actions">
         <button type="button" class="secondary map-site-details-button" data-site-id="${marker.siteId}">Standortdetails</button>

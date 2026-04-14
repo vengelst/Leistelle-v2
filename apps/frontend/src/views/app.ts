@@ -69,8 +69,6 @@ export function renderApp(): string {
   const isWallboard = isLeitstelle && state.leitstelleMode === "wallboard";
   const isLeitstelleNavigationCollapsed = isLeitstelle && state.leitstelleNavigationCollapsed;
   const isKiosk = state.kioskMode;
-  const nextThemeLabel = state.themeMode === "dark" ? "Hell" : "Dunkel";
-  const currentThemeLabel = state.themeMode === "dark" ? "dunkel" : "hell";
 
   return `
     <main class="shell shell-with-navigation${isLeitstelle ? " leitstelle-shell" : ""}${isWallboard ? " wallboard-shell" : ""}${isKiosk ? " kiosk-shell" : ""}">
@@ -82,22 +80,20 @@ export function renderApp(): string {
           </div>
           <div class="hero-status">
             ${renderPill(`Bereich ${activeWorkspace.title}`)}
-            ${renderPill(`Theme ${currentThemeLabel}`)}
             ${renderPill(state.session.user.displayName)}
             ${renderPill(`Status ${formatUserStatusLabel(state.session.user.status)}`)}
             ${state.kioskMode ? renderPill("Kiosk aktiv") : ""}
             ${pendingOperations.length > 0 ? renderPill(`Laedt ${pendingOperations.length}`) : ""}
             <button type="button" id="kiosk-toggle-button" class="secondary theme-toggle-button">${state.kioskMode ? "Kiosk verlassen" : "Kiosk aktivieren"}</button>
-            <button type="button" id="theme-toggle-button" class="secondary theme-toggle-button">Auf ${nextThemeLabel} umschalten</button>
+            <button
+              type="button"
+              id="theme-toggle-button"
+              class="secondary theme-toggle-button icon-only-button"
+              aria-label="${state.themeMode === "dark" ? "Auf helles Theme umschalten" : "Auf dunkles Theme umschalten"}"
+              title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
+            >${state.themeMode === "dark" ? "☀" : "☾"}</button>
           </div>
         </div>
-        <p class="intro">${isWallboard
-          ? "Das Wallboard bleibt eine ruhige, read-only Grossansicht auf bestehende Leitstellenquellen: Alarme, Stoerungen, Besetzung und Schichten werden ohne neue Workflow-Welt zusammengefasst."
-          : isKiosk
-            ? "Der Kiosk-Modus reduziert Shell-Ornamente, nutzt mehr Flaeche und bleibt dennoch dieselbe App mit denselben Fachpfaden."
-          : isLeitstelle
-            ? "Der Leitstellenmodus ist auf direkte Bedienung ausgerichtet: Statuszugriff im Header, mehr Raum fuer Pipeline und Detailansicht, weniger allgemeine Ornamentik."
-          : "Die Oberflaeche ist jetzt in Hauptbereiche gegliedert, damit klar erkennbar bleibt, ob gerade Dashboard, Leitstelle, Karte, Standorte, Archiv oder Einstellungen aktiv sind."}</p>
         ${renderUserStatusBar(state.session.user)}
         ${pendingOperations.length > 0
           ? `<div class="notice inline-notice app-loading-notice">Aktive Vorgaenge: ${pendingOperations.join(" | ")}</div>`
@@ -149,7 +145,6 @@ function renderWorkspaceContent(activeWorkspace: WorkspaceDescriptor): string {
     return `
       <article id="region-settings" class="card workspace-card wide">
         <h2>Einstellungen</h2>
-        <p>Globale Leitstellenkonfiguration, Benutzer, Rollen und globale Standortkontexte werden hier ohne Parallelmenues in einem zentralen Admin-Bereich gebuendelt.</p>
         ${renderSettingsSection()}
       </article>
     `;

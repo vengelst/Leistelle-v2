@@ -6,6 +6,10 @@ export const userStatuses = ["offline", "angemeldet", "aktiv", "in_pause", "assi
 
 export type UserStatus = (typeof userStatuses)[number];
 
+export const loginModes = ["password", "kiosk_code"] as const;
+
+export type LoginMode = (typeof loginModes)[number];
+
 export type AuthenticatedUser = {
   id: string;
   username: string;
@@ -17,6 +21,7 @@ export type AuthenticatedUser = {
   status: UserStatus;
   pauseReason?: string;
   lastStatusChangeAt: string;
+  avatarDataUrl?: string;
 };
 
 export type UserAdminRecord = {
@@ -32,6 +37,8 @@ export type UserAdminRecord = {
   lastStatusChangeAt: string;
   createdAt: string;
   updatedAt: string;
+  avatarDataUrl?: string;
+  hasKioskCode: boolean;
 };
 
 export type UserAdministrationOverview = {
@@ -47,6 +54,8 @@ export type UserUpsertInput = {
   roles: UserRole[];
   isActive: boolean;
   password?: string;
+  kioskCode?: string | null;
+  avatarDataUrl?: string | null;
 };
 
 export type UserActivationInput = {
@@ -60,8 +69,10 @@ export type SessionInfo = {
 };
 
 export type LoginRequest = {
-  identifier: string;
-  password: string;
+  mode: LoginMode;
+  identifier?: string;
+  password?: string;
+  kioskCode?: string;
 };
 
 export type LoginResponse = {
