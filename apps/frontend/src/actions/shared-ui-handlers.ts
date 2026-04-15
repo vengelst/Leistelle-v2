@@ -20,6 +20,7 @@ type SharedUiHandlerDeps = {
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
+  shellMenuPositionStorageKey: string;
   openSecondaryOperatorWindow: () => void;
   playAlarmSoundPreview: () => Promise<void>;
   render: () => void;
@@ -37,6 +38,7 @@ export function createSharedUiHandlers(
   | "toggleLeitstelleNavigation"
   | "toggleTheme"
   | "toggleKiosk"
+  | "setShellMenuPosition"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"
@@ -82,6 +84,11 @@ export function createSharedUiHandlers(
     toggleKiosk(): void {
       state.kioskMode = !state.kioskMode;
       window.localStorage.setItem(deps.kioskStorageKey, state.kioskMode ? "true" : "false");
+      deps.render();
+    },
+    setShellMenuPosition(position: string): void {
+      state.shellMenuPosition = position === "top" ? "top" : "left";
+      window.localStorage.setItem(deps.shellMenuPositionStorageKey, state.shellMenuPosition);
       deps.render();
     },
     openSecondaryOperatorWindow(): void {

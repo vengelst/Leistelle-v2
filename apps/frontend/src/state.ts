@@ -50,6 +50,7 @@ export type SettingsSection = "overview" | "general" | "users" | "roles";
 export type WorkspaceId = "dashboard" | "leitstelle" | "map" | "sites" | "archive-reporting" | "settings" | "administration";
 export type LeitstelleMode = "overview" | "alarms" | "disturbances" | "operator" | "wallboard";
 export type ThemeMode = "light" | "dark";
+export type ShellMenuPosition = "left" | "top";
 export type BusyStateMap = Record<string, string>;
 export type UserAdministrationView = "list" | "detail";
 export type AlarmSoundPermissionState = "unknown" | "ready" | "blocked" | "unsupported";
@@ -124,6 +125,7 @@ export type FrontendState = {
   operatorLayoutDraftName: string;
   operatorLayoutEditorOpen: boolean;
   leitstelleNavigationCollapsed: boolean;
+  shellMenuPosition: ShellMenuPosition;
   themeMode: ThemeMode;
   loginMode: LoginMode;
   kioskMode: boolean;
@@ -226,6 +228,7 @@ export const state: FrontendState = {
   operatorLayoutDraftName: "",
   operatorLayoutEditorOpen: false,
   leitstelleNavigationCollapsed: false,
+  shellMenuPosition: "left",
   themeMode: "light",
   loginMode: "password",
   kioskMode: false,
@@ -310,6 +313,7 @@ export function resetSessionScopedState(): void {
   state.operatorLayoutDraftName = "";
   state.operatorLayoutEditorOpen = false;
   state.leitstelleNavigationCollapsed = false;
+  state.shellMenuPosition = "left";
   state.selectedSettingsSection = "overview";
   state.userAdministrationView = "list";
   state.userAdministrationCreateMode = false;

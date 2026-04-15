@@ -1015,6 +1015,14 @@ function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEdit
   };
   return `
     <section class="forms-grid">
+      <article class="subcard stack">
+        <h3>Lokale UI-Einstellungen</h3>
+        <p class="muted">Diese Einstellung wirkt direkt in diesem Browser und vereinfacht die Bedienung des Hauptmenues.</p>
+        <label class="field">
+          <span>Position Hauptmenue</span>
+          <select id="shell-menu-position-select" name="shellMenuPosition">${renderOptions(["left", "top"], state.shellMenuPosition)}</select>
+        </label>
+      </article>
       ${canEditSettings
         ? `
           <form id="global-settings-form" class="subcard stack" data-ui-preserve-form="true">

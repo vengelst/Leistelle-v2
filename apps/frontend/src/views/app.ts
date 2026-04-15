@@ -73,9 +73,10 @@ export function renderApp(): string {
   const isWallboard = isLeitstelle && state.leitstelleMode === "wallboard";
   const isLeitstelleNavigationCollapsed = isLeitstelle && state.leitstelleNavigationCollapsed;
   const isKiosk = state.kioskMode;
+  const isTopNavigation = state.shellMenuPosition === "top";
 
   return `
-    <main class="shell shell-with-navigation${isLeitstelle ? " leitstelle-shell" : ""}${isWallboard ? " wallboard-shell" : ""}${isKiosk ? " kiosk-shell" : ""}">
+    <main class="shell shell-with-navigation${isLeitstelle ? " leitstelle-shell" : ""}${isWallboard ? " wallboard-shell" : ""}${isKiosk ? " kiosk-shell" : ""}${isTopNavigation ? " shell-nav-top" : ""}">
       <header class="hero${isLeitstelle ? " leitstelle-hero" : ""}${isKiosk ? " kiosk-hero" : ""}">
         <div class="hero-topline">
           <div>
@@ -103,8 +104,8 @@ export function renderApp(): string {
           ? `<div class="notice inline-notice app-loading-notice">Aktive Vorgaenge: ${pendingOperations.join(" | ")}</div>`
           : ""}
       </header>
-      <section class="workspace-shell${isLeitstelle ? " leitstelle-workspace-shell" : ""}${isLeitstelleNavigationCollapsed ? " leitstelle-nav-collapsed" : ""}${isKiosk ? " kiosk-workspace-shell" : ""}">
-        ${isLeitstelleNavigationCollapsed && !isKiosk ? "" : renderWorkspaceNavigation(activeWorkspace, visibleWorkspaces)}
+      <section class="workspace-shell${isLeitstelle ? " leitstelle-workspace-shell" : ""}${isLeitstelleNavigationCollapsed ? " leitstelle-nav-collapsed" : ""}${isKiosk ? " kiosk-workspace-shell" : ""}${isTopNavigation ? " workspace-shell-topnav" : ""}">
+        ${isLeitstelleNavigationCollapsed && !isKiosk ? "" : renderWorkspaceNavigation(activeWorkspace, visibleWorkspaces, state.shellMenuPosition)}
         <section class="workspace-main${isLeitstelle ? " leitstelle-workspace-main" : ""}">
           ${isLeitstelle ? renderLeitstelleToolbar() : `
             <article class="workspace-summary card">
@@ -157,15 +158,19 @@ function renderWorkspaceContent(activeWorkspace: WorkspaceDescriptor): string {
   return activeWorkspace.regions.map((regionId) => renderRegion(regionId)).join("");
 }
 
-function renderWorkspaceNavigation(activeWorkspace: WorkspaceDescriptor, visibleWorkspaces: WorkspaceDescriptor[]): string {
+function renderWorkspaceNavigation(
+  activeWorkspace: WorkspaceDescriptor,
+  visibleWorkspaces: WorkspaceDescriptor[],
+  menuPosition: "left" | "top"
+): string {
   return `
-    <aside class="workspace-nav-card">
+    <aside class="workspace-nav-card${menuPosition === "top" ? " workspace-nav-card-top" : ""}">
       <div class="workspace-nav-header">
         <p class="eyebrow">Produktbereiche</p>
         <h2>Hauptnavigation</h2>
         <p class="muted">Die Primaernavigation ordnet die vorhandenen Funktionen in klare Arbeitsbereiche statt in eine flache Gesamtsicht.</p>
       </div>
-      <nav class="workspace-nav" aria-label="Primaernavigation">
+      <nav class="workspace-nav${menuPosition === "top" ? " workspace-nav-top" : ""}" aria-label="Primaernavigation">
         ${visibleWorkspaces.map((workspace) => `
           <div class="workspace-nav-entry">
             <button

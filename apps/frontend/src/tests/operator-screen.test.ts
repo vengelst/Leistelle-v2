@@ -693,6 +693,7 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       toggleLeitstelleNavigation: () => undefined,
       toggleTheme: () => undefined,
       toggleKiosk: () => undefined,
+      setShellMenuPosition: () => undefined,
       openSecondaryOperatorWindow: () => undefined,
       toggleOperatorLayoutEditor: () => undefined,
       applyOperatorLayoutPreset: () => undefined,

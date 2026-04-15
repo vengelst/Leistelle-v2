@@ -124,7 +124,7 @@ function renderOperatorLayoutWidget(widgetId: OperatorLayoutWidgetId, role: Oper
   }
 }
 
-function renderOperatorWidgetEditorBar(widgetId: OperatorLayoutWidgetId, role: OperatorWindowRole): string {
+function renderOperatorWidgetEditorBar(_widgetId: OperatorLayoutWidgetId, _role: OperatorWindowRole): string {
   return "";
 }
 
@@ -175,7 +175,6 @@ function renderOperatorQueue(): string {
   }
 
   const currentUserId = state.session?.user.id;
-  const canOverride = state.session?.user.roles.some((role) => role === "administrator" || role === "leitstellenleiter") ?? false;
   return `
     <section class="stack section">
       ${renderPipelineAssignmentQuickFilters()}
@@ -183,7 +182,6 @@ function renderOperatorQueue(): string {
         const isSelected = state.selectedAlarmCaseId === alarm.id;
         const isMine = alarm.activeAssignment?.userId === currentUserId;
         const isTaken = Boolean(alarm.activeAssignment && !isMine);
-        const canTakeOver = !alarm.activeAssignment || (canOverride && !isMine);
         const age = formatRelativeAge(alarm.receivedAt);
         const hasFollowUp = Boolean(alarm.followUpAt);
         const isFollowUpOverdue = isOverdueFollowUp(alarm.followUpAt);
@@ -203,7 +201,7 @@ function renderOperatorQueue(): string {
                 ...(hasFollowUp ? [renderPill(isFollowUpOverdue ? "WV ueberfaellig" : "Wiedervorlage")] : []),
                 ...(isMine ? [renderPill("mein Alarm")] : isTaken ? [renderPill("anderer Bearbeiter")] : [renderPill("frei")])
               ],
-              actions: `<button type="button" class="secondary operator-accept-button operator-entry-button" data-operator-entry-button="true" data-alarm-case-id="${alarm.id}" aria-current="${isSelected ? "true" : "false"}" ${!canTakeOver ? "disabled" : ""}>${isMine ? "Auf beiden Screens oeffnen" : canOverride && isTaken ? "Override uebernehmen" : "Uebernehmen"}</button>`
+              actions: `<button type="button" class="secondary detail-button operator-entry-button" data-operator-entry-button="true" data-alarm-case-id="${alarm.id}" aria-current="${isSelected ? "true" : "false"}">${isSelected ? "Alarm geoeffnet" : "Alarm oeffnen"}</button>`
             })}
             <dl class="facts compact-gap">
               <div><dt>Alarmtyp</dt><dd>${formatAlarmTypeLabel(alarm.alarmType)}</dd></div>

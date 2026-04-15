@@ -14,6 +14,7 @@ type UiHandlerDeps = HandlerRuntime & {
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
   kioskStorageKey: string;
+  shellMenuPositionStorageKey: string;
   openSecondaryOperatorWindow: () => void;
   playAlarmSoundPreview: () => Promise<void>;
   router: WorkspaceRouter;
@@ -30,6 +31,7 @@ export function createUiHandlers(
   | "toggleLeitstelleNavigation"
   | "toggleTheme"
   | "toggleKiosk"
+  | "setShellMenuPosition"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"

@@ -10,6 +10,7 @@ export type AppHandlers = {
   toggleLeitstelleNavigation: () => void;
   toggleTheme: () => void;
   toggleKiosk: () => void;
+  setShellMenuPosition: (position: string) => void;
   openSecondaryOperatorWindow: () => void;
   toggleOperatorLayoutEditor: () => void;
   applyOperatorLayoutPreset: (presetId: string) => void;
@@ -501,6 +502,9 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLFormElement>("#operator-layout-save-form")?.addEventListener("submit", handlers.saveOperatorLayoutProfile);
   document.querySelector<HTMLButtonElement>("#theme-toggle-button")?.addEventListener("click", () => handlers.toggleTheme());
   document.querySelector<HTMLButtonElement>("#kiosk-toggle-button")?.addEventListener("click", () => handlers.toggleKiosk());
+  document.querySelector<HTMLSelectElement>("#shell-menu-position-select")?.addEventListener("change", (event) => {
+    handlers.setShellMenuPosition((event.currentTarget as HTMLSelectElement).value);
+  });
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());

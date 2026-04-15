@@ -758,6 +758,219 @@ export async function seedDatabase(database: DatabaseClient, bootstrapPassword: 
       `,
       [cameraId]
     );
+
+    const clipUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+    const now = Date.now();
+    const seedAlarms = [
+      {
+        id: "alarm-seed-hafen-nordtor",
+        primaryDeviceId: cameraId,
+        alarmType: "motion",
+        priority: "high",
+        priorityRank: 3,
+        lifecycleStatus: "received",
+        assessmentStatus: "pending",
+        technicalState: "complete",
+        incompleteReason: null,
+        title: "Zaunalarm Nordtor",
+        description: "Bewegung im Bereich Nordtor. Demoalarm fuer den zweiten Alarmmonitor.",
+        receivedAt: new Date(now - (18 * 60 * 1000)).toISOString(),
+        lastEventAt: new Date(now - (17 * 60 * 1000)).toISOString(),
+        sourcePayload: { zone: "Nordtor", vendor: "Axis", profile: "three_images_one_clip" },
+        technicalDetails: { queueHint: "fifo", demo: true }
+      },
+      {
+        id: "alarm-seed-hafen-westzaun",
+        primaryDeviceId: "device-ptz-hafen",
+        alarmType: "sabotage",
+        priority: "critical",
+        priorityRank: 4,
+        lifecycleStatus: "queued",
+        assessmentStatus: "pending",
+        technicalState: "incomplete",
+        incompleteReason: "weitere Rueckmeldung von Kamera steht aus",
+        title: "Sabotage Westzaun",
+        description: "Sabotagehinweis an Kamera Westzaun. Demoalarm mit Bildfolge und Clip.",
+        receivedAt: new Date(now - (12 * 60 * 1000)).toISOString(),
+        lastEventAt: new Date(now - (11 * 60 * 1000)).toISOString(),
+        sourcePayload: { zone: "Westzaun", vendor: "Bosch", profile: "three_images_one_clip" },
+        technicalDetails: { queueHint: "fifo", demo: true }
+      },
+      {
+        id: "alarm-seed-hafen-lager-ost",
+        primaryDeviceId: "device-nvr-hafen",
+        alarmType: "video_loss",
+        priority: "normal",
+        priorityRank: 2,
+        lifecycleStatus: "in_progress",
+        assessmentStatus: "pending",
+        technicalState: "incomplete",
+        incompleteReason: "Recorder meldet Kanalstoerung",
+        title: "Videoloss Lager Ost",
+        description: "Recorder meldet Videoloss am Lager Ost. Demoalarm fuer Medienvorschau im Zweitbildschirm.",
+        receivedAt: new Date(now - (6 * 60 * 1000)).toISOString(),
+        lastEventAt: new Date(now - (5 * 60 * 1000)).toISOString(),
+        sourcePayload: { zone: "Lager Ost", vendor: "Hanwha", profile: "three_images_one_clip" },
+        technicalDetails: { queueHint: "fifo", demo: true }
+      }
+    ] as const;
+
+    for (const alarm of seedAlarms) {
+      await client.query(
+        `
+          insert into alarm_cases(
+            id, site_id, primary_device_id, external_source_ref, alarm_type, priority, priority_rank,
+            lifecycle_status, assessment_status, technical_state, incomplete_reason, title, description,
+            source_occurred_at, received_at, first_opened_at, resolved_at, last_event_at,
+            source_payload, technical_details, follow_up_at, follow_up_note, updated_at
+          )
+          values (
+            $1, $2, $3, $4, $5, $6, $7,
+            $8, $9, $10, $11, $12, $13,
+            $14, $15, null, null, $16,
+            $17::jsonb, $18::jsonb, null, null, now()
+          )
+          on conflict (id) do update set
+            site_id = excluded.site_id,
+            primary_device_id = excluded.primary_device_id,
+            external_source_ref = excluded.external_source_ref,
+            alarm_type = excluded.alarm_type,
+            priority = excluded.priority,
+            priority_rank = excluded.priority_rank,
+            lifecycle_status = excluded.lifecycle_status,
+            assessment_status = excluded.assessment_status,
+            technical_state = excluded.technical_state,
+            incomplete_reason = excluded.incomplete_reason,
+            title = excluded.title,
+            description = excluded.description,
+            source_occurred_at = excluded.source_occurred_at,
+            received_at = excluded.received_at,
+            last_event_at = excluded.last_event_at,
+            source_payload = excluded.source_payload,
+            technical_details = excluded.technical_details,
+            follow_up_at = excluded.follow_up_at,
+            follow_up_note = excluded.follow_up_note,
+            updated_at = now()
+        `,
+        [
+          alarm.id,
+          siteId,
+          alarm.primaryDeviceId,
+          `demo-${alarm.id}`,
+          alarm.alarmType,
+          alarm.priority,
+          alarm.priorityRank,
+          alarm.lifecycleStatus,
+          alarm.assessmentStatus,
+          alarm.technicalState,
+          alarm.incompleteReason,
+          alarm.title,
+          alarm.description,
+          alarm.receivedAt,
+          alarm.receivedAt,
+          alarm.lastEventAt,
+          JSON.stringify(alarm.sourcePayload),
+          JSON.stringify(alarm.technicalDetails)
+        ]
+      );
+
+      await client.query("delete from alarm_assignments where alarm_case_id = $1", [alarm.id]);
+      await client.query("delete from alarm_case_false_positive_reasons where alarm_case_id = $1", [alarm.id]);
+      await client.query("delete from alarm_case_comments where alarm_case_id = $1", [alarm.id]);
+      await client.query("delete from alarm_case_actions where alarm_case_id = $1", [alarm.id]);
+      await client.query("delete from alarm_media where alarm_case_id = $1", [alarm.id]);
+      await client.query("delete from alarm_events where alarm_case_id = $1", [alarm.id]);
+
+      const mediaRows = [
+        {
+          id: `${alarm.id}-media-1`,
+          mediaKind: "snapshot",
+          storageKey: createSeedSvgMediaDataUrl(`${alarm.title} | Bild 1`, "#4d6f8f"),
+          mimeType: "image/svg+xml",
+          capturedAt: alarm.receivedAt,
+          isPrimary: true
+        },
+        {
+          id: `${alarm.id}-media-2`,
+          mediaKind: "snapshot",
+          storageKey: createSeedSvgMediaDataUrl(`${alarm.title} | Bild 2`, "#7a4f00"),
+          mimeType: "image/svg+xml",
+          capturedAt: new Date(new Date(alarm.receivedAt).getTime() + 15_000).toISOString(),
+          isPrimary: false
+        },
+        {
+          id: `${alarm.id}-media-3`,
+          mediaKind: "snapshot",
+          storageKey: createSeedSvgMediaDataUrl(`${alarm.title} | Bild 3`, "#1f6a47"),
+          mimeType: "image/svg+xml",
+          capturedAt: new Date(new Date(alarm.receivedAt).getTime() + 30_000).toISOString(),
+          isPrimary: false
+        },
+        {
+          id: `${alarm.id}-media-4`,
+          mediaKind: "clip",
+          storageKey: clipUrl,
+          mimeType: "video/mp4",
+          capturedAt: new Date(new Date(alarm.receivedAt).getTime() + 45_000).toISOString(),
+          isPrimary: false
+        }
+      ] as const;
+
+      for (const media of mediaRows) {
+        await client.query(
+          `
+            insert into alarm_media(
+              id, alarm_case_id, device_id, media_kind, storage_key, mime_type, captured_at, is_primary, metadata
+            )
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+            on conflict (id) do update set
+              alarm_case_id = excluded.alarm_case_id,
+              device_id = excluded.device_id,
+              media_kind = excluded.media_kind,
+              storage_key = excluded.storage_key,
+              mime_type = excluded.mime_type,
+              captured_at = excluded.captured_at,
+              is_primary = excluded.is_primary,
+              metadata = excluded.metadata
+          `,
+          [media.id, alarm.id, alarm.primaryDeviceId, media.mediaKind, media.storageKey, media.mimeType, media.capturedAt, media.isPrimary, JSON.stringify({ demo: true })]
+        );
+      }
+
+      const eventRows = [
+        {
+          id: `${alarm.id}-event-created`,
+          eventKind: "case_created",
+          occurredAt: alarm.receivedAt,
+          message: "Demoalarm fuer Operator-Screen erzeugt.",
+          payload: { demo: true, mediaCount: mediaRows.length }
+        },
+        {
+          id: `${alarm.id}-event-media`,
+          eventKind: "media_attached",
+          occurredAt: alarm.lastEventAt,
+          message: "Drei Bilder und ein Clip fuer den Alarmmonitor vorbereitet.",
+          payload: { demo: true, receivedImages: 3, receivedClips: 1 }
+        }
+      ] as const;
+
+      for (const event of eventRows) {
+        await client.query(
+          `
+            insert into alarm_events(id, alarm_case_id, event_kind, actor_user_id, occurred_at, message, payload)
+            values ($1, $2, $3, null, $4, $5, $6::jsonb)
+            on conflict (id) do update set
+              alarm_case_id = excluded.alarm_case_id,
+              event_kind = excluded.event_kind,
+              actor_user_id = excluded.actor_user_id,
+              occurred_at = excluded.occurred_at,
+              message = excluded.message,
+              payload = excluded.payload
+          `,
+          [event.id, alarm.id, event.eventKind, event.occurredAt, event.message, JSON.stringify(event.payload)]
+        );
+      }
+    }
   });
 }
 
@@ -861,4 +1074,31 @@ function createSeedUsers(bootstrapPassword: string): SeedUser[] {
       isActive: true
     }
   ];
+}
+
+function createSeedSvgMediaDataUrl(label: string, accent: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${accent}" />
+      <stop offset="100%" stop-color="#1d2a2f" />
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)" />
+  <rect x="58" y="58" width="1164" height="604" rx="28" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.4)" />
+  <text x="92" y="150" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">Leitstelle Demoalarm</text>
+  <text x="92" y="230" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="54" font-weight="700">${escapeXml(label)}</text>
+  <text x="92" y="300" fill="#f3f0e8" font-family="Segoe UI, Arial, sans-serif" font-size="26">Seed-Medium fuer den zweiten Alarmmonitor</text>
+  <text x="92" y="610" fill="#f3f0e8" font-family="Segoe UI, Arial, sans-serif" font-size="24">3 Bilder + 1 Clip | Vorschau im Operator-Zweitbildschirm</text>
+</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&apos;");
 }

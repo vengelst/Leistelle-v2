@@ -31,6 +31,7 @@ import { renderApp } from "./views/app.js";
 
 const themeStorageKey = "leitstelle.theme.mode";
 const kioskStorageKey = "leitstelle.ui.kiosk";
+const shellMenuPositionStorageKey = "leitstelle.ui.shell-menu-position";
 const alarmSoundEnabledStorageKey = "leitstelle.alarm.sound.enabled";
 const alarmSoundIncludeNormalPriorityStorageKey = "leitstelle.alarm.sound.include-normal";
 
@@ -46,6 +47,7 @@ state.operatorWindowRole = resolveOperatorWindowRole(window.location.search);
 applyOperatorWindowDocumentState(state.operatorWindowRole);
 initializeThemeMode();
 initializeKioskMode();
+initializeShellMenuPosition();
 initializeAlarmSoundPreferences();
 
 const router = createWorkspaceRouter({
@@ -79,6 +81,7 @@ const uiHandlers = createUiHandlers({
     state.operatorLayoutEditorOpen
   ),
   kioskStorageKey,
+  shellMenuPositionStorageKey,
   openSecondaryOperatorWindow: () => openSecondaryOperatorWindow(router.hrefForLeitstelleMode("operator")),
   playAlarmSoundPreview: () => alarmSoundController.playPreview(),
   router,
@@ -331,6 +334,13 @@ function initializeKioskMode(): void {
   const storedKiosk = window.localStorage.getItem(kioskStorageKey);
   if (storedKiosk === "true" || storedKiosk === "false") {
     state.kioskMode = storedKiosk === "true";
+  }
+}
+
+function initializeShellMenuPosition(): void {
+  const storedPosition = window.localStorage.getItem(shellMenuPositionStorageKey);
+  if (storedPosition === "left" || storedPosition === "top") {
+    state.shellMenuPosition = storedPosition;
   }
 }
 

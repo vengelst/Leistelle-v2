@@ -51,6 +51,19 @@ test("primary navigation shows settings and separate sites entry", () => {
   assert.ok(html.includes('data-workspace-id="sites"'));
 });
 
+test("shell can render primary navigation at top", () => {
+  resetSessionScopedState();
+  state.session = createSession(["administrator"]);
+  state.activeWorkspace = "dashboard";
+  state.shellMenuPosition = "top";
+
+  const html = renderApp();
+
+  assert.ok(html.includes("shell-nav-top"));
+  assert.ok(html.includes("workspace-shell-topnav"));
+  assert.ok(html.includes("workspace-nav-card-top"));
+});
+
 test("sites workspace renders dedicated site management area", () => {
   resetSessionScopedState();
   state.session = createSession(["administrator"]);
@@ -285,6 +298,7 @@ test("kiosk toggle stores shell preference without second app", () => {
       applyThemeMode: () => undefined,
       armAlarmSound: async () => undefined,
       broadcastOperatorLayoutUpdate: () => undefined,
+      shellMenuPositionStorageKey: "leitstelle.ui.shell-menu-position",
       openSecondaryOperatorWindow: () => undefined,
       render: () => undefined,
       playAlarmSoundPreview: async () => undefined,
@@ -297,6 +311,7 @@ test("kiosk toggle stores shell preference without second app", () => {
     });
 
     handlers.toggleKiosk();
+    handlers.setShellMenuPosition("top");
   } finally {
     if (previousLocalStorage) {
       globalThis.localStorage = previousLocalStorage;
@@ -311,7 +326,11 @@ test("kiosk toggle stores shell preference without second app", () => {
   }
 
   assert.equal(state.kioskMode, true);
-  assert.deepEqual(localStorageCalls, [{ key: "leitstelle.ui.kiosk", value: "true" }]);
+  assert.equal(state.shellMenuPosition, "top");
+  assert.deepEqual(localStorageCalls, [
+    { key: "leitstelle.ui.kiosk", value: "true" },
+    { key: "leitstelle.ui.shell-menu-position", value: "top" }
+  ]);
 });
 
 function createSession(roles: string[]) {

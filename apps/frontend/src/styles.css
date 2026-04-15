@@ -270,6 +270,10 @@ h1 {
   align-items: start;
 }
 
+.workspace-shell.workspace-shell-topnav {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .kiosk-workspace-shell {
   grid-template-columns: minmax(160px, 200px) minmax(0, 1fr);
 }
@@ -760,6 +764,10 @@ a.button-link {
   box-shadow: var(--shadow-strong);
 }
 
+.workspace-nav-card.workspace-nav-card-top {
+  position: static;
+}
+
 .kiosk-shell .workspace-nav-card {
   padding: 16px;
 }
@@ -808,9 +816,18 @@ a.button-link {
   margin-top: 14px;
 }
 
+.workspace-nav.workspace-nav-top {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+
 .workspace-nav-entry {
   display: grid;
   gap: 8px;
+}
+
+.workspace-nav-top .workspace-nav-entry {
+  align-content: start;
 }
 
 .workspace-nav-button {
