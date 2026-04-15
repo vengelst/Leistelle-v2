@@ -1,6 +1,5 @@
 import type { OperatorLayoutWidgetId, OperatorWindowRole } from "../state.js";
 
-import { operatorLayoutTargetRoleLabel } from "../operator-layout.js";
 import { state } from "../state.js";
 import { escapeHtml, formatDateTimeLocalValue, formatTimestamp } from "../utils.js";
 import {
@@ -46,110 +45,49 @@ export function renderOperatorScreen(): string {
   }
 
   const role = state.operatorWindowRole;
-  const widgets = state.operatorLayout[role];
+  return role === "secondary" ? renderSecondaryOperatorScreen() : renderPrimaryOperatorScreen();
+}
+
+function renderPrimaryOperatorScreen(): string {
   return `
-    <section class="stack operator-window-layout${role === "secondary" ? " operator-secondary-screen" : " operator-primary-screen"}" data-operator-keyboard-root="true">
-      ${renderOperatorLayoutToolbar(role)}
+    <section class="stack operator-window-layout operator-primary-screen" data-operator-keyboard-root="true">
+      ${renderOperatorScreenHeader("Hauptbildschirm", "Screen 1", "Wenn im Alarmmonitor ein Alarm angeklickt wird, erscheinen hier automatisch Standortdaten, Einsatzkontext und Bearbeitung.")}
       <section class="stack operator-layout-stack">
-        ${widgets.map((widgetId) => renderOperatorLayoutWidget(widgetId, role)).join("")}
+        ${renderOperatorLayoutWidget("site", "primary")}
+        ${renderOperatorLayoutWidget("instructions", "primary")}
+        ${renderOperatorLayoutWidget("actions", "primary")}
+        ${renderOperatorLayoutWidget("documentation", "primary")}
+        ${renderOperatorLayoutWidget("plan", "primary")}
       </section>
     </section>
   `;
 }
 
-function renderOperatorLayoutToolbar(role: OperatorWindowRole): string {
+function renderSecondaryOperatorScreen(): string {
   return `
-    <article class="subcard stack compact operator-layout-toolbar-card">
-      ${renderSectionHeader(role === "primary" ? "Hauptbildschirm" : "Alarmmonitor", {
-        subtitle: role === "primary"
-          ? "Standortdaten, Einsatzanweisungen und Dokumentation liegen standardmaessig auf Screen 1. Ueber den Layouteditor kannst du jede Box nach oben, unten oder auf Screen 2 verschieben."
-          : "FIFO-Warteschlange, Medien und Vor-Ort-Karte liegen standardmaessig auf Screen 2. Ueber den Layouteditor kannst du jede Box auf Screen 1 oder Screen 2 umhaengen.",
-        pills: [
-          renderPill(operatorLayoutTargetRoleLabel(role)),
-          renderPill(state.operatorLayout.presetId === "custom" ? "Layout individuell" : state.operatorLayout.presetId === "single-screen" ? "Preset 1 Bildschirm" : "Preset 2 Bildschirme"),
-          renderPill(state.operatorLayoutEditorOpen ? "Editor aktiv" : "Editor aus")
-        ]
-      })}
-      <div class="actions operator-layout-toolbar-actions">
-        <button type="button" id="operator-layout-editor-toggle" class="secondary">${state.operatorLayoutEditorOpen ? "Layouteditor beenden" : "Layouteditor starten"}</button>
-        <button type="button" class="secondary" data-operator-layout-preset="single-screen">Preset 1 Bildschirm</button>
-        <button type="button" class="secondary" data-operator-layout-preset="two-screen">Preset 2 Bildschirme</button>
-      </div>
-      <p class="muted">${state.operatorLayoutEditorOpen
-        ? "Widgets lassen sich jetzt per Hoch, Runter, Auf Screen 1 und Auf Screen 2 neu anordnen. Das Layout wird sofort gespeichert und zwischen beiden Fenstern synchronisiert."
-        : "Das aktuelle Widget-Layout wird pro Benutzer gespeichert und in beiden Fenstern gemeinsam verwendet."}</p>
-      ${state.operatorLayoutEditorOpen ? renderOperatorLayoutEditorBoard() : ""}
-    </article>
-  `;
-}
-
-function renderOperatorLayoutEditorBoard(): string {
-  return `
-    <section class="stack operator-layout-editor-board">
-      <div class="operator-layout-editor-columns">
-        ${renderOperatorLayoutEditorColumn("primary")}
-        ${renderOperatorLayoutEditorColumn("secondary")}
-      </div>
-      <article class="subcard stack compact operator-layout-profile-card">
-        <h4>Benannte Layouts</h4>
-        <form id="operator-layout-save-form" class="actions">
-          <input id="operator-layout-name-input" name="layoutName" value="${escapeHtml(state.operatorLayoutDraftName)}" placeholder="z. B. Tagdienst" />
-          <button type="submit">Aktuelles Layout speichern</button>
-        </form>
-        <div class="stack compact">
-          ${state.operatorLayoutProfiles.length > 0
-            ? state.operatorLayoutProfiles.map((profile) => `
-                <div class="actions operator-layout-profile-row">
-                  <strong>${escapeHtml(profile.name)}</strong>
-                  <div class="actions">
-                    <button type="button" class="secondary" data-operator-layout-profile-id="${profile.id}" data-operator-layout-apply="true">Anwenden</button>
-                    <button type="button" class="secondary" data-operator-layout-profile-id="${profile.id}" data-operator-layout-delete="true">Loeschen</button>
-                  </div>
-                </div>
-              `).join("")
-            : `<p class="muted">Noch keine benannten Layouts gespeichert.</p>`}
-        </div>
-      </article>
+    <section class="stack operator-window-layout operator-secondary-screen" data-operator-keyboard-root="true">
+      ${renderOperatorScreenHeader("Alarmmonitor", "Screen 2", "Hier laeuft die FIFO-Pipeline. Ein Klick auf einen Alarm oeffnet Bilder und Clip hier und den Standortkontext auf Screen 1.")}
+      <section class="operator-screen-layout">
+        <aside class="operator-screen-queue-column">
+          ${renderOperatorQueueCard("secondary")}
+        </aside>
+        <section class="operator-screen-context-column">
+          ${renderOperatorLayoutWidget("media", "secondary")}
+        </section>
+      </section>
     </section>
   `;
 }
 
-function renderOperatorLayoutEditorColumn(role: OperatorWindowRole): string {
-  const widgets = state.operatorLayout[role];
+function renderOperatorScreenHeader(title: string, screenLabel: string, subtitle: string): string {
   return `
-    <article class="subcard stack compact operator-layout-editor-column">
-      <div class="actions">
-        <h4>${operatorLayoutTargetRoleLabel(role)}</h4>
-        <span class="pill">${widgets.length} Widgets</span>
-      </div>
-      ${widgets.map((widgetId, index) => `
-        ${renderOperatorLayoutDropZone(role, index)}
-        <article class="operator-layout-editor-item" draggable="true" data-layout-drag-widget-id="${widgetId}">
-          <div class="actions">
-            <strong>${operatorWidgetLabel(widgetId)}</strong>
-            <span class="pill">${renderOperatorWidgetSizeSummary(widgetId)}</span>
-          </div>
-          <div class="actions operator-layout-editor-size-actions">
-            <button type="button" class="secondary" data-widget-id="${widgetId}" data-layout-width="normal">Breite M</button>
-            <button type="button" class="secondary" data-widget-id="${widgetId}" data-layout-width="wide">Breite L</button>
-            <button type="button" class="secondary" data-widget-id="${widgetId}" data-layout-width="full">Breite XL</button>
-            <button type="button" class="secondary" data-widget-id="${widgetId}" data-layout-height="normal">Hoehe M</button>
-            <button type="button" class="secondary" data-widget-id="${widgetId}" data-layout-height="tall">Hoehe L</button>
-          </div>
-        </article>
-      `).join("")}
-      ${renderOperatorLayoutDropZone(role, widgets.length)}
+    <article class="subcard stack compact operator-layout-toolbar-card">
+      ${renderSectionHeader(title, {
+        subtitle,
+        pills: [renderPill(screenLabel)]
+      })}
     </article>
   `;
-}
-
-function renderOperatorLayoutDropZone(role: OperatorWindowRole, index: number): string {
-  return `<div class="operator-layout-drop-zone" data-layout-drop-role="${role}" data-layout-drop-index="${index}">Hierher ziehen</div>`;
-}
-
-function renderOperatorWidgetSizeSummary(widgetId: OperatorLayoutWidgetId): string {
-  const size = state.operatorLayout.widgetSizes[widgetId];
-  return `${size.width} / ${size.height}`;
 }
 
 function operatorWidgetShellClass(widgetId: OperatorLayoutWidgetId): string {
@@ -187,27 +125,7 @@ function renderOperatorLayoutWidget(widgetId: OperatorLayoutWidgetId, role: Oper
 }
 
 function renderOperatorWidgetEditorBar(widgetId: OperatorLayoutWidgetId, role: OperatorWindowRole): string {
-  if (!state.operatorLayoutEditorOpen) {
-    return "";
-  }
-
-  const widgets = state.operatorLayout[role];
-  const index = widgets.indexOf(widgetId);
-  const targetRole: OperatorWindowRole = role === "primary" ? "secondary" : "primary";
-  const targetAction = targetRole === "primary" ? "to-primary" : "to-secondary";
-  return `
-    <div class="subcard compact operator-widget-editor-bar">
-      <div class="actions">
-        <strong>${operatorWidgetLabel(widgetId)}</strong>
-        <span class="pill">${operatorLayoutTargetRoleLabel(role)}</span>
-      </div>
-      <div class="actions">
-        <button type="button" class="secondary" data-widget-id="${widgetId}" data-operator-layout-action="up" ${index <= 0 ? "disabled" : ""}>Hoch</button>
-        <button type="button" class="secondary" data-widget-id="${widgetId}" data-operator-layout-action="down" ${index < 0 || index >= widgets.length - 1 ? "disabled" : ""}>Runter</button>
-        <button type="button" class="secondary" data-widget-id="${widgetId}" data-operator-layout-action="${targetAction}">Auf ${operatorLayoutTargetRoleLabel(targetRole)}</button>
-      </div>
-    </div>
-  `;
+  return "";
 }
 
 function renderOperatorQueueCard(role: OperatorWindowRole): string {
@@ -224,7 +142,7 @@ function renderOperatorQueueCard(role: OperatorWindowRole): string {
       ${renderSectionHeader("Alarmannahme", {
         subtitle: "Die Warteschlange ist hier strikt FIFO nach Eingangszeit sortiert. Ein Klick oeffnet den Alarm fuer beide Leitstellenfenster.",
         pills: [
-          renderPill(operatorLayoutTargetRoleLabel(role)),
+          renderPill(role === "primary" ? "Screen 1" : "Screen 2"),
           renderPill(`${state.openAlarms.length} offen`),
           ...(state.pendingOperations["open-alarms"] ? [renderPill("laedt")] : [])
         ]
@@ -341,9 +259,9 @@ function renderOperatorSiteWidget(role: OperatorWindowRole): string {
         data-operator-focus-zone="detail"
       >
         ${renderSectionHeader(alarmCase.title, {
-          subtitle: "Standortdaten und aktueller Bearbeitungsstatus koennen frei auf Screen 1 oder Screen 2 liegen.",
+          subtitle: "Standortdaten und aktueller Bearbeitungsstatus fuer den aktuell im Alarmmonitor gewaehlten Alarm.",
           pills: [
-            renderPill(operatorLayoutTargetRoleLabel(role)),
+            renderPill(role === "primary" ? "Screen 1" : "Screen 2"),
             renderPriorityPill(alarmCase.priority),
             renderAlarmLifecyclePill(alarmCase.lifecycleStatus),
             renderAlarmAssessmentPill(alarmCase.assessmentStatus),
@@ -586,35 +504,12 @@ function renderOperatorPlaceholderWidget(
       ${renderOperatorWidgetEditorBar(widgetId, role)}
       <article class="subcard stack compact operator-screen-placeholder${extraAttributes ? " operator-focus-zone" : ""}" ${extraAttributes}>
         ${renderSectionHeader(title, {
-          pills: [renderPill(operatorLayoutTargetRoleLabel(role)), renderPill("Auswahl offen")]
+          pills: [renderPill(role === "primary" ? "Screen 1" : "Screen 2"), renderPill("Auswahl offen")]
         })}
         <p class="muted">${message}</p>
       </article>
     </section>
   `;
-}
-
-function operatorWidgetLabel(widgetId: OperatorLayoutWidgetId): string {
-  switch (widgetId) {
-    case "queue":
-      return "FIFO-Warteschlange";
-    case "site":
-      return "Standort / Fall";
-    case "instructions":
-      return "Einsatzanweisungen";
-    case "actions":
-      return "Aktionen / Abschluss";
-    case "documentation":
-      return "Dokumentation";
-    case "media":
-      return "Medien";
-    case "plan":
-      return "Karte / Plan";
-    case "source":
-      return "Quelle / Eingang";
-    default:
-      return widgetId;
-  }
 }
 
 function renderAlarmPayloadDetails(label: string, payload: Record<string, unknown> | undefined): string {

@@ -547,18 +547,21 @@ test("operator ui structure highlights primary actions and readable status label
   assert.match(queueMarkup, /Unvollstaendig/);
 
   assert.match(primaryScreenMarkup, /Hauptbildschirm/);
+  assert.match(primaryScreenMarkup, /Screen 1/);
   assert.match(primaryScreenMarkup, /Primaeraktionen/);
   assert.match(primaryScreenMarkup, /Quittieren/);
   assert.match(primaryScreenMarkup, /Eskalation \/ Weitergabe/);
-  assert.match(primaryScreenMarkup, /Standortdaten und aktueller Bearbeitungsstatus/);
+  assert.match(primaryScreenMarkup, /Standortdaten und aktueller Bearbeitungsstatus fuer den aktuell im Alarmmonitor gewaehlten Alarm/);
   assert.match(primaryScreenMarkup, /Einsatzanweisungen/);
   assert.match(primaryScreenMarkup, /In Bearbeitung/);
   assert.match(primaryScreenMarkup, /Vorfall bestaetigt/);
 
+  assert.match(secondaryScreenMarkup, /Alarmmonitor/);
+  assert.match(secondaryScreenMarkup, /Screen 2/);
   assert.match(secondaryScreenMarkup, /Alarmannahme/);
   assert.match(secondaryScreenMarkup, /Snapshot- \/ Medienbezug/);
-  assert.match(secondaryScreenMarkup, /Lageplan \/ Objektplan \/ Kamerakarte/);
-  assert.match(secondaryScreenMarkup, /Quelle \/ Eingang/);
+  assert.doesNotMatch(secondaryScreenMarkup, /Lageplan \/ Objektplan \/ Kamerakarte/);
+  assert.doesNotMatch(secondaryScreenMarkup, /Quelle \/ Eingang/);
 });
 
 test("operator keyboard preparation binds focus zones, shortcuts and safe list navigation", () => {
