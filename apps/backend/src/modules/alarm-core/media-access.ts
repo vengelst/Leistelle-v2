@@ -56,13 +56,14 @@ export function createMediaAccessDocument(
 }
 
 function parseEmbeddedMedia(storageKey: string): { mimeType: string; contentBase64: string; extension: string } | null {
-  const match = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(storageKey);
+  const match = /^data:([^;,]+)((?:;[^,;=]+(?:=[^,;]+)?)*)?,(.*)$/s.exec(storageKey);
   if (!match) {
     return null;
   }
 
   const mimeType = match[1] ?? "application/octet-stream";
-  const isBase64 = Boolean(match[2]);
+  const parameters = (match[2] ?? "").split(";").filter(Boolean);
+  const isBase64 = parameters.includes("base64");
   const rawPayload = match[3] ?? "";
   const contentBase64 = isBase64
     ? rawPayload
@@ -236,8 +237,8 @@ function resolveMediaReferenceUrl(storageKey: string, mediaStorageBaseUrl: strin
   return `${mediaStorageBaseUrl}${storageKey}`;
 }
 
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value: unknown): string {
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
