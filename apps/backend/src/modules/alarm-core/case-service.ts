@@ -1,3 +1,6 @@
+/**
+ * Bietet die operativen Detail- und Aktionsablaeufe fuer offene Alarmfaelle an.
+ */
 import type {
   AlarmAcknowledgeActionResult,
   AlarmAcknowledgeInput,

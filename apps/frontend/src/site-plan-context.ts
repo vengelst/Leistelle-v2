@@ -1,3 +1,6 @@
+/**
+ * Leitet aus Standortplaenen, Markern und offenen Vorgaengen den aktuellen Plan-Kontext ab.
+ */
 import type {
   AlarmPipelineItem,
   CameraPlanMarker,

@@ -1,3 +1,6 @@
+/**
+ * Rendert die Mediensektion eines Alarmfalls fuer Aktiv- und Archivkontext.
+ */
 import type { AlarmCaseDetail, AlarmMediaRecord } from "@leitstelle/contracts";
 
 import { state } from "../state.js";

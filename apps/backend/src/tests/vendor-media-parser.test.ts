@@ -1,3 +1,6 @@
+/**
+ * Testet das Parsen vendor-spezifischer Mediennamen und Medienhinweise.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

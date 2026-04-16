@@ -1,3 +1,6 @@
+/**
+ * Stellt die Shift-Planning-Handler unter einer kompakteren Fachschnittstelle bereit.
+ */
 import type { AppHandlers } from "../actions/events.js";
 
 type ShiftHandlerDeps = {

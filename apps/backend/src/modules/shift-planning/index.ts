@@ -1,3 +1,6 @@
+/**
+ * Verdrahtet das Schichtplanungsmodul mit Store, Identity-Service und Audit-Trail.
+ */
 import type { AuditTrail } from "@leitstelle/observability";
 
 import type { DatabaseClient } from "../../db/client.js";

@@ -1,3 +1,9 @@
+/**
+ * Views fuer die technische Stoerungspipeline.
+ *
+ * Die Datei stellt Filter, offene Stoerungen und den Detailbereich fuer eine
+ * selektierte technische Stoerung dar.
+ */
 import type { MonitoringPipelineItem } from "@leitstelle/contracts";
 
 import { state } from "../state.js";

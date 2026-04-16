@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Render-Helfer der Frontend-Views.
+ *
+ * Die Datei sammelt formatierende und wiederverwendbare UI-Bausteine, die von
+ * Alarm-, Monitoring-, Karten-, Archiv- und Stammdatenansichten gemeinsam
+ * genutzt werden.
+ */
 import type {
   AlarmCaseDetail,
   AlarmCatalogs,

@@ -1,3 +1,6 @@
+/**
+ * Persistiert Benutzer, Rollen und Status des Identity-Moduls in PostgreSQL.
+ */
 import { randomUUID } from "node:crypto";
 
 import type { PoolClient } from "pg";

@@ -1,3 +1,9 @@
+/**
+ * Fachservice fuer Authentifizierung, Sessionzugriff und Benutzerstatus.
+ *
+ * Die Datei setzt die operativen Regeln des Identity-Moduls um: Login,
+ * Rollenpruefung, Benutzerverwaltung, Statuswechsel und Logout-Guards.
+ */
 import { AppError, type AuditTrail, type Logger } from "@leitstelle/observability";
 import type { AuditEvent, SessionInfo, UserRole, UserUpsertInput } from "@leitstelle/contracts";
 
@@ -25,6 +31,8 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
     await input.audit.record(event, { requestId });
   };
 
+  // Jede Session wird gegen die aktuelle Benutzerbasis aufgeloest; verwaiste
+  // Sessions werden aktiv verworfen.
   const getAuthenticatedSession = async (token: string): Promise<AuthenticatedSession> => {
     const session = await input.sessions.getActive(token);
     const user = await input.users.getById(session.userId);
@@ -115,6 +123,7 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
 
   return {
     async login(credentials: LoginInput, requestId: string) {
+      // Login bleibt zweigleisig: klassisches Passwort oder Kiosk-Code.
       const loginMode = credentials.mode;
       const identifier = credentials.identifier?.trim() ?? "";
       const password = credentials.password ?? "";

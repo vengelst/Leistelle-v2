@@ -1,3 +1,6 @@
+/**
+ * Kapselt Reservierung, Zuweisung, Freigabe und Auto-Zuordnung fuer offene Alarmfaelle.
+ */
 import type {
   AlarmAssignmentActionResult,
   AlarmReleaseInput,

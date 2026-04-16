@@ -1,3 +1,6 @@
+/**
+ * Analysiert vendor-spezifische Mediennamen und leitet daraus strukturierte Medienmetadaten ab.
+ */
 import type { AlarmMediaKind, ParsedVendorMediaResult } from "@leitstelle/contracts";
 
 import { AppError } from "@leitstelle/observability";

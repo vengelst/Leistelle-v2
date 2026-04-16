@@ -1,3 +1,6 @@
+/**
+ * Persistiert Schichtplaene, Schichten und Besetzungen in PostgreSQL.
+ */
 import { randomUUID } from "node:crypto";
 
 import { AppError } from "@leitstelle/observability";

@@ -1,3 +1,6 @@
+/**
+ * Testet die Ableitung des Standortplan-Kontexts aus Markern, Geraeten und offenen Vorgaengen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

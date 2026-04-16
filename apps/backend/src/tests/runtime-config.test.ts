@@ -1,3 +1,6 @@
+/**
+ * Testet das Laden und die Pflichtpruefungen der Backend-Laufzeitkonfiguration.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

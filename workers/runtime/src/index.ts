@@ -1,3 +1,11 @@
+/**
+ * Startpunkt der Worker-Runtime.
+ *
+ * Der Prozess registriert technische Jobs, startet den Monitoring-Scheduler und
+ * delegiert die eigentliche Monitoring-Ausfuehrung an den bereits gebauten
+ * Backend-Job. So bleibt die Worker-Runtime klein und dupliziert keine
+ * Fachlogik aus dem Backend.
+ */
 import { createLogger } from "@leitstelle/observability";
 
 import { loadWorkerRuntimeConfig } from "./config.js";
@@ -45,6 +53,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 try {
   if (config.monitoring.enabled) {
+    // Der Worker fuehrt nur den Scheduler aus; die fachliche Scan-Logik liegt im Backend-Job.
     await createMonitoringScheduler(config.monitoring, {
       logger,
       executeRun: executeMonitoringRun

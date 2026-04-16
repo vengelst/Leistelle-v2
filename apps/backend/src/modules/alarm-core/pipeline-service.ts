@@ -1,3 +1,6 @@
+/**
+ * Liefert die operative Alarm-Pipeline als gefilterte Sicht auf offene Faelle.
+ */
 import type { AlarmPipelineFilter, AlarmPipelineResult } from "@leitstelle/contracts";
 import type { AuditTrail } from "@leitstelle/observability";
 

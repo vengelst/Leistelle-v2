@@ -1,3 +1,6 @@
+/**
+ * Definiert die internen Typen und Servicevertraege des Alarm-Core-Moduls.
+ */
 import type {
   AlarmActionCreateInput,
   AlarmActionRecord,

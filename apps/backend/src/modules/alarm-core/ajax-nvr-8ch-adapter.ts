@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt AJAX NVR 8CH-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   AjaxNvr8chAlarmIngestionRequest,
   ExternalAlarmIngestionRequest,

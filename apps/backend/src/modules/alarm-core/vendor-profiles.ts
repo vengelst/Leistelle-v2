@@ -1,3 +1,6 @@
+/**
+ * Buendelt vendor-spezifische Profile, Aliasregeln und Normalisierungen fuer externe Alarmquellen.
+ */
 import type { MediaBundleProfileKey } from "@leitstelle/contracts";
 
 import { toVendorSnakeCase } from "./vendor-adapter-utils.js";

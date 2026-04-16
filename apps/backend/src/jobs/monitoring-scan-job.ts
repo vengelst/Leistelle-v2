@@ -1,3 +1,6 @@
+/**
+ * Fuehrt den Monitoring-Scan als ausfuehrbaren Backend-Job mit Laufzeitkonfiguration und Logging aus.
+ */
 import type { Logger } from "@leitstelle/observability";
 import { createLogger } from "@leitstelle/observability";
 

@@ -1,3 +1,6 @@
+/**
+ * Bewahrt Formular-, Fokus- und Scrollzustand fuer opt-in markierte UI-Bereiche.
+ */
 type PreservedFieldState = {
   name: string;
   type: string;

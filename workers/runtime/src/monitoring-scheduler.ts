@@ -1,3 +1,9 @@
+/**
+ * Technischer Scheduler fuer periodische Monitoring-Laeufe.
+ *
+ * Die Datei kapselt nur Laufsteuerung, Overlap-Schutz und Logging. Welche
+ * fachliche Arbeit in einem Zyklus passiert, wird ueber `executeRun` injiziert.
+ */
 export type MonitoringSchedulerTrigger = "startup" | "interval";
 
 export type MonitoringSchedulerResult = {
@@ -46,6 +52,7 @@ export function createMonitoringScheduler(
   let runInProgress = false;
 
   async function runCycle(trigger: MonitoringSchedulerTrigger): Promise<boolean> {
+    // Ueberlappende Runs werden bewusst verworfen, um parallele Monitoring-Scans zu vermeiden.
     if (runInProgress) {
       input.logger.info("worker.job.skipped_overlap", {
         service: serviceName,
@@ -95,6 +102,7 @@ export function createMonitoringScheduler(
   }
 
   async function start(shouldStop: () => boolean): Promise<void> {
+    // Optionaler Startlauf fuer fruehes Aufholen nach Prozessneustart.
     if (config.runOnStartup && !shouldStop()) {
       await runCycle("startup");
     }

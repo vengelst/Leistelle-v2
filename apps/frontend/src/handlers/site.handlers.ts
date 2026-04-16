@@ -1,3 +1,6 @@
+/**
+ * Orchestriert Standortnavigation, Detailwechsel und Bearbeitungsfluesse der Stammdatenansicht.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import type { WorkspaceRouter } from "../navigation/router.js";
 import type { DeviceType } from "@leitstelle/contracts";

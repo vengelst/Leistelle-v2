@@ -1,3 +1,9 @@
+/**
+ * Kleine, deklarative Uebersicht der in der Worker-Runtime bekannten Jobs.
+ *
+ * Die Registry dient vor allem Transparenz und Logging; sie fuehrt keine Jobs
+ * selbst aus, sondern beschreibt, welche technischen Laeufe die Runtime kennt.
+ */
 export type RegisteredJob = {
   name: string;
   schedule: string;

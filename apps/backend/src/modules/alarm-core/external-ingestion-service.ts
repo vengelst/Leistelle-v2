@@ -1,3 +1,6 @@
+/**
+ * Bindet externe Alarmquellen an die bestehende Alarm-Ingestion und Geraeteaufloesung an.
+ */
 import type {
   AlarmEventRecord,
   AlarmIngestionRequest,

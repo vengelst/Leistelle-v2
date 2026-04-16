@@ -1,3 +1,6 @@
+/**
+ * Sichert Routing, Rendering und Interaktionen des dedizierten Operator-Screens ab.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

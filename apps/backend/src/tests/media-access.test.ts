@@ -1,3 +1,6 @@
+/**
+ * Testet die Aufbereitung von Alarmmedien fuer lesbare Zugriffsdokumente.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

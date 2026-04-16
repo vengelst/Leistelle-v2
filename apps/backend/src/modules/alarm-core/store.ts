@@ -1,3 +1,6 @@
+/**
+ * Persistiert Alarmfaelle, Ereignisse, Aktionen und Archivdaten in PostgreSQL.
+ */
 import { randomUUID } from "node:crypto";
 
 import type {

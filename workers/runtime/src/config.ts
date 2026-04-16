@@ -1,3 +1,10 @@
+/**
+ * Runtime-Konfiguration der Worker-Prozesse.
+ *
+ * Aktuell konzentriert sich die Worker-Runtime auf periodische Monitoring-Laeufe;
+ * diese Datei uebersetzt dafuer die noetigen Env-Werte in ein kleines,
+ * typsicheres Konfigurationsobjekt.
+ */
 import { parseBoolean, parseNumber, readBaseRuntimeEnvironment } from "@leitstelle/config";
 
 export type WorkerRuntimeConfig = {

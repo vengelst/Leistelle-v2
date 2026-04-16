@@ -1,3 +1,6 @@
+/**
+ * Testet die Normalisierung von AJAX-NVR-8CH-Ereignissen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

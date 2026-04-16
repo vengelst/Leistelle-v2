@@ -1,3 +1,6 @@
+/**
+ * Testet die Normalisierung von Uniview-IP-Kamera-Ereignissen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

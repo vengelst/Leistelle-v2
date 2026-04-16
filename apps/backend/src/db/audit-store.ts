@@ -1,3 +1,9 @@
+/**
+ * Persistenzadapter fuer Audit-Ereignisse.
+ *
+ * Waehren das Observability-Paket nur die Audit-API kennt, sorgt diese Datei
+ * fuer die konkrete Speicherung im Backend-Postgres.
+ */
 import { randomUUID } from "node:crypto";
 
 import type { AuditEvent } from "@leitstelle/contracts";

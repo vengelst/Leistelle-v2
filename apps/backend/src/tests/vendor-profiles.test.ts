@@ -1,3 +1,6 @@
+/**
+ * Testet Aliasregeln und Normalisierungen der vendor-spezifischen Profile.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

@@ -1,3 +1,10 @@
+/**
+ * Zentrale Frontend-Zustandsdefinition.
+ *
+ * Die Datei beschreibt das gemeinsame In-Memory-Modell fuer Session, Navigation,
+ * Leitstellenansichten, Karten, Archive, Operator-Fenster und UI-Voreinstellungen.
+ * Dadurch ist an einer Stelle sichtbar, welche Daten die Anwendung insgesamt fuehrt.
+ */
 import type {
   AlarmArchiveFilter,
   AlarmArchiveLifecycleScope,

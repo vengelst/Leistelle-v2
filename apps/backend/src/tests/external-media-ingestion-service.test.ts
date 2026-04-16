@@ -1,3 +1,6 @@
+/**
+ * Testet die Zuordnung und Korrelation externer Medien zu Alarmfaellen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

@@ -1,3 +1,10 @@
+/**
+ * Fachservice fuer offene technische Stoerungen.
+ *
+ * Die Datei deckt den operativen Monitoring-Pfad ab: Pipeline lesen,
+ * Stoerungsdetails oeffnen, quittieren, Notizen schreiben und aus einer
+ * Stoerung einen Servicefall erzeugen.
+ */
 import type {
   MonitoringDisturbanceAcknowledgeInput,
   MonitoringDisturbanceDetail,
@@ -90,6 +97,7 @@ export function createMonitoringPipelineService(input: CreateMonitoringPipelineS
       return detail;
     },
     async acknowledgeDisturbance(token, disturbanceId, ackInput, requestId) {
+      // Geloeste Stoerungen sind im aktiven Monitoring-Pfad schreibgeschuetzt.
       const session = await requireMutationSession(input.identity, token);
       const detail = await requireDisturbanceDetail(input.store, disturbanceId);
 

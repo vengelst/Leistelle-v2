@@ -1,12 +1,29 @@
+/**
+ * Rohes Einlesen und Parsen von JSON-Request-Bodies.
+ *
+ * Die Datei bleibt absichtlich klein und HTTP-nah: Sie liest den Request-Stream
+ * ein und liefert entweder JSON oder einen kontrollierten AppError zurueck.
+ */
 import type { IncomingMessage } from "node:http";
 
 import { AppError } from "@leitstelle/observability";
 
+const maxJsonBodyBytes = 1024 * 1024;
+
 export async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
 
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const nextChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += nextChunk.byteLength;
+    if (totalBytes > maxJsonBodyBytes) {
+      throw new AppError("Request body exceeds the maximum size.", {
+        status: 413,
+        code: "HTTP_BODY_TOO_LARGE"
+      });
+    }
+    chunks.push(nextChunk);
   }
 
   const raw = Buffer.concat(chunks).toString("utf8").trim();

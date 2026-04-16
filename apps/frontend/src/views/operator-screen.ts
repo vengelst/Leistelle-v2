@@ -1,3 +1,10 @@
+/**
+ * Spezialisierte Views fuer den dedizierten Operator-/Alarmannahme-Screen.
+ *
+ * Die Datei rendert die feste Zwei-Screen-Aufteilung fuer die Leitstelle:
+ * Hauptbildschirm mit Fall- und Standortkontext sowie Sekundaerbildschirm mit
+ * FIFO-Pipeline und Medienvorschau.
+ */
 import type { OperatorLayoutWidgetId, OperatorWindowRole } from "../state.js";
 
 import { state } from "../state.js";
@@ -49,6 +56,7 @@ export function renderOperatorScreen(): string {
 }
 
 function renderPrimaryOperatorScreen(): string {
+  // Screen 1 fokussiert den geoeffneten Fall und den kompletten Standortkontext.
   return `
     <section class="stack operator-window-layout operator-primary-screen" data-operator-keyboard-root="true">
       ${renderOperatorScreenHeader("Hauptbildschirm", "Screen 1", "Wenn im Alarmmonitor ein Alarm angeklickt wird, erscheinen hier automatisch Standortdaten, Einsatzkontext und Bearbeitung.")}
@@ -64,6 +72,7 @@ function renderPrimaryOperatorScreen(): string {
 }
 
 function renderSecondaryOperatorScreen(): string {
+  // Screen 2 bleibt bewusst schmal: Pipeline links, Medien-/Alarmmonitor rechts.
   return `
     <section class="stack operator-window-layout operator-secondary-screen" data-operator-keyboard-root="true">
       ${renderOperatorScreenHeader("Alarmmonitor", "Screen 2", "Hier laeuft die FIFO-Pipeline. Ein Klick auf einen Alarm oeffnet Bilder und Clip hier und den Standortkontext auf Screen 1.")}

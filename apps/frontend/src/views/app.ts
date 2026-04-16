@@ -1,3 +1,10 @@
+/**
+ * Root-View des Frontends.
+ *
+ * Hier wird entschieden, ob Login, Haupt-App oder das sekundäre Operatorfenster
+ * gerendert wird. Die Datei setzt damit die globale Shell um, nicht die
+ * Detaillogik einzelner Fachbereiche.
+ */
 import type { WorkspaceId } from "../state.js";
 
 import { hrefForLeitstelleMode } from "../navigation/routes.js";
@@ -62,6 +69,7 @@ export function renderApp(): string {
     return renderStandaloneLoginScreen();
   }
 
+  // Das zweite Operatorfenster ist eine eigene, reduzierte Root-Ansicht.
   if (state.operatorWindowRole === "secondary") {
     return renderSecondaryOperatorWindow();
   }

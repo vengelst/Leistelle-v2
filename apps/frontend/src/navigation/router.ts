@@ -1,3 +1,10 @@
+/**
+ * Kleiner Hash-basierter Workspace-Router des Frontends.
+ *
+ * Der Router synchronisiert URL-Hash und globalen UI-Zustand fuer die grossen
+ * Arbeitsbereiche der Anwendung, ohne ein externes Routing-Framework
+ * einzufuehren.
+ */
 import type { UiShellDescriptor } from "@leitstelle/contracts";
 import type { LeitstelleMode, WorkspaceId } from "../state.js";
 
@@ -46,6 +53,7 @@ export function createWorkspaceRouter(deps: WorkspaceRouterDeps): WorkspaceRoute
   }
 
   function applyNavigation(navigation: WorkspaceNavigation): boolean {
+    // Nur die globalen Navigationsachsen werden hier angepasst; Detailzustand bleibt anderswo.
     const nextLeitstelleMode = navigation.workspace === "leitstelle"
       ? navigation.leitstelleMode ?? "alarms"
       : state.leitstelleMode;

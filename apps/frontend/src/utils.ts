@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Frontend-Hilfsfunktionen.
+ *
+ * Die Datei sammelt kleine, moduluebergreifende Utilities fuer Formwerte,
+ * Filter-Normalisierung, HTML-Escaping, Downloads und Formatierungen, damit sie
+ * nicht in Views und Handlern dupliziert werden.
+ */
 import type {
   AlarmCaseExportDocument,
   AlarmMediaAccessDocument,

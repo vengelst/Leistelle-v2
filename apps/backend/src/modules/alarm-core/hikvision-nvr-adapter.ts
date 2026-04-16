@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt Hikvision-NVR-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   ExternalAlarmIngestionRequest,
   ExternalAlarmIngestionResult,

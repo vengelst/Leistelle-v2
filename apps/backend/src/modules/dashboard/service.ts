@@ -1,3 +1,6 @@
+/**
+ * Aggregiert Kennzahlen und Uebersichten fuer das operative Dashboard.
+ */
 import type { DashboardOverview } from "@leitstelle/contracts";
 import type { AuditTrail } from "@leitstelle/observability";
 

@@ -1,3 +1,6 @@
+/**
+ * Enthaelt die Fachlogik fuer Planung, Besetzung und Auswertung von Schichten.
+ */
 import { AppError, type AuditTrail } from "@leitstelle/observability";
 import type { ShiftAssignableUser, ShiftPlanningFilter, ShiftPlanningOverview, ShiftPlanningRange, ShiftPlanningState, ShiftRecord, ShiftUpsertInput, UserRole } from "@leitstelle/contracts";
 

@@ -1,3 +1,10 @@
+/**
+ * Backend-spezifische Runtime-Konfiguration.
+ *
+ * Diese Datei uebersetzt rohe Environment-Variablen in ein typsicheres
+ * Konfigurationsobjekt fuer den Backend-Prozess und legt zugleich die
+ * produktionsrelevanten Sicherheitspruefungen fest.
+ */
 import {
   parseBoolean,
   parseNumber,
@@ -44,6 +51,8 @@ export type BackendRuntimeConfig = {
 };
 
 export function loadBackendRuntimeConfig(): BackendRuntimeConfig {
+  // Gemeinsame Basiswerte kommen aus dem zentralen Config-Paket, Backend-spezifische
+  // Felder werden hier ergänzt.
   const base = readBaseRuntimeEnvironment(process.env);
   const database = readDatabaseRuntimeEnvironment(process.env);
 
@@ -96,6 +105,7 @@ export function loadBackendRuntimeConfig(): BackendRuntimeConfig {
   return config;
 }
 
+// Ohne explizite Vorgabe bleibt Medienzugriff referenzbasiert und nicht dateisystemgebunden.
 function readMediaStorageType(): BackendRuntimeConfig["mediaStorage"]["type"] {
   const rawValue = process.env.MEDIA_STORAGE_TYPE?.trim().toLowerCase();
   return rawValue === "filesystem" ? "filesystem" : "reference";
@@ -105,6 +115,7 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/u, "");
 }
 
+// Vendor-spezifische Toleranzen bleiben optional und werden nur bei gesetzten Werten aktiviert.
 function compactVendorCorrelationOverrides(): Partial<Record<string, number>> {
   const entries: Array<[string, number | undefined]> = [
     ["grundig", readVendorTolerance("GRUNDIG")],
@@ -121,6 +132,7 @@ function readVendorTolerance(vendorKey: string): number | undefined {
   return rawValue?.trim() ? parseNumber(rawValue, 30) : undefined;
 }
 
+// Produktion darf nicht mit dem bekannten Entwicklungs-Default starten.
 function assertProductionRuntimeSafety(config: BackendRuntimeConfig, env: NodeJS.ProcessEnv): void {
   if (config.environment !== "production") {
     return;

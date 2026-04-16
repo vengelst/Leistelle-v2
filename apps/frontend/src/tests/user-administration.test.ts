@@ -1,3 +1,6 @@
+/**
+ * Testet Rendering und Handlerfluesse der Benutzerverwaltung im Settings-Bereich.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

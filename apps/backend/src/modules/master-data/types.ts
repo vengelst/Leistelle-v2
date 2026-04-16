@@ -1,3 +1,6 @@
+/**
+ * Definiert die internen Typen und Storevertraege des Stammdatenmoduls.
+ */
 import type {
   AlarmSourceMappingRecord,
   AlarmSourceMappingUpsertInput,

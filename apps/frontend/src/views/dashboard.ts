@@ -1,3 +1,6 @@
+/**
+ * Rendert die operative Dashboard-Uebersicht mit Kennzahlen, Highlights und Schichtblock.
+ */
 import { state } from "../state.js";
 import { formatTimestamp } from "../utils.js";
 import { canAccessArchiveWorkspace } from "./auth.js";

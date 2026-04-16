@@ -3,6 +3,8 @@
 param(
   [ValidateSet("check", "push", "deploy", "all", "version", "menu", "server-sync")]
   [string]$Action = "all",
+  [ValidateSet("prod", "stage", "custom")]
+  [string]$Environment = "prod",
   [string]$Server = "root@vivahome.de",
   [string]$ServerRepoPath = "/opt/leitstelle",
   [string]$RemoteGitUrl = "",
@@ -27,6 +29,59 @@ $ErrorActionPreference = "Stop"
 if ($PSVersionTable.PSVersion.Major -ge 7) {
   $PSNativeCommandUseErrorActionPreference = $false
 }
+
+$script:InitialBoundParameters = @{} + $PSBoundParameters
+
+function Get-EnvironmentPreset([string]$Name) {
+  switch ($Name) {
+    "prod" {
+      return [PSCustomObject]@{
+        Server = "root@vivahome.de"
+        ServerRepoPath = "/opt/leitstelle"
+        ComposeEnvFile = ".env.production"
+        HealthUrl = "http://127.0.0.1:18080/health"
+        BackupDir = "/opt/leitstelle/backups"
+      }
+    }
+    "stage" {
+      return [PSCustomObject]@{
+        Server = "root@stage.vivahome.de"
+        ServerRepoPath = "/opt/leitstelle-stage"
+        ComposeEnvFile = ".env.stage"
+        HealthUrl = "http://127.0.0.1:28080/health"
+        BackupDir = "/opt/leitstelle-stage/backups"
+      }
+    }
+    default {
+      return $null
+    }
+  }
+}
+
+function Apply-EnvironmentPreset() {
+  $preset = Get-EnvironmentPreset $Environment
+  if ($null -eq $preset) {
+    return
+  }
+
+  if (-not $script:InitialBoundParameters.ContainsKey("Server")) {
+    $script:Server = $preset.Server
+  }
+  if (-not $script:InitialBoundParameters.ContainsKey("ServerRepoPath")) {
+    $script:ServerRepoPath = $preset.ServerRepoPath
+  }
+  if (-not $script:InitialBoundParameters.ContainsKey("ComposeEnvFile")) {
+    $script:ComposeEnvFile = $preset.ComposeEnvFile
+  }
+  if (-not $script:InitialBoundParameters.ContainsKey("HealthUrl")) {
+    $script:HealthUrl = $preset.HealthUrl
+  }
+  if (-not $script:InitialBoundParameters.ContainsKey("BackupDir")) {
+    $script:BackupDir = $preset.BackupDir
+  }
+}
+
+Apply-EnvironmentPreset
 
 $scriptDir = $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..")).Path
@@ -98,6 +153,7 @@ function Show-ScriptHeader([string]$ResolvedAction, [string]$ResolvedTargetType,
   Write-Host ""
   Write-Host "========================================" -ForegroundColor Cyan
   Write-Host "   Leitstelle Abgleich / Deploy" -ForegroundColor Cyan
+  Write-Host ("   Env    : {0}" -f $Environment) -ForegroundColor DarkGray
   Write-Host ("   Action : {0}" -f $ResolvedAction) -ForegroundColor DarkGray
   Write-Host ("   Ziel   : {0} = {1}" -f $ResolvedTargetType, $ResolvedTargetName) -ForegroundColor DarkGray
   Write-Host ("   Server : {0}" -f $Server) -ForegroundColor DarkGray
@@ -192,6 +248,27 @@ function Validate-Arguments() {
 
   if ($RunSeed -and -not $RunMigration) {
     Write-Warn "Seed wird ohne Migration ausgefuehrt. Das ist erlaubt, sollte in Produktion aber bewusst sein."
+  }
+
+  if ($SyncDatabase -and $Environment -ne "stage") {
+    Fail "SyncDatabase ist ausschliesslich fuer -Environment stage erlaubt. Fuer prod und custom ist der Datenbanktransfer gesperrt."
+  }
+
+  if ($Environment -eq "custom") {
+    $requiredCustomParameters = @("Server", "ServerRepoPath", "ComposeEnvFile", "HealthUrl")
+    $missingCustomParameters = @()
+    foreach ($parameterName in $requiredCustomParameters) {
+      if (-not $script:InitialBoundParameters.ContainsKey($parameterName)) {
+        $missingCustomParameters += $parameterName
+      }
+    }
+    if ($missingCustomParameters.Count -gt 0) {
+      Fail ("Fuer -Environment custom muessen folgende Parameter explizit gesetzt werden: {0}." -f ($missingCustomParameters -join ", "))
+    }
+
+    if ($ComposeEnvFile.Trim() -eq ".env.production") {
+      Fail "-Environment custom darf nicht mit .env.production verwendet werden. Fuer Produktion -Environment prod nutzen."
+    }
   }
 }
 
@@ -400,6 +477,14 @@ function Get-LocalComposeArguments([string[]]$ComposeArguments) {
   return @("compose", "--env-file", $envFile) + $ComposeArguments
 }
 
+function Get-RemoteComposeCommand() {
+  if ($Environment -eq "stage") {
+    return "docker compose -f docker-compose.yml -f docker-compose.stage.yml --env-file '$ComposeEnvFile'"
+  }
+
+  return "docker compose --env-file '$ComposeEnvFile'"
+}
+
 function Wait-ForLocalDatabaseReady() {
   for ($attempt = 1; $attempt -le 30; $attempt++) {
     $result = Invoke-Captured "docker" (Get-LocalComposeArguments @(
@@ -551,6 +636,7 @@ function Create-VersionTag() {
 
 function Invoke-ServerDeploy() {
   $target = Get-DeployTarget
+  $remoteComposeCommand = Get-RemoteComposeCommand
   Step "Server-Deploy ueber Pull-only-Ablauf starten"
   Show-DeployPlan
 
@@ -627,7 +713,7 @@ BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
   }
 
   $remoteMigrationCommand = if ($RunMigration) {
-    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
+    "$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
   } else {
     "echo 'Keine Migration angefordert.'"
   }
@@ -635,7 +721,7 @@ BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
+$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
@@ -662,13 +748,13 @@ TARGET_COMMIT=`$(git rev-parse --short HEAD)
 echo "Deploy-Ziel: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
 $remoteBackupCommand
 echo 'App-Services werden ohne Build-Cache neu gebaut.'
-docker compose --env-file '$ComposeEnvFile' build --pull --no-cache backend frontend worker
+$remoteComposeCommand build --pull --no-cache backend frontend worker
 echo 'Optionale Datenbankschritte.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
-docker compose --env-file '$ComposeEnvFile' ps
+$remoteComposeCommand up -d --force-recreate --remove-orphans backend frontend worker
+$remoteComposeCommand ps
 $remoteHealthCommand
 echo "Deploy abgeschlossen: $($target.Type) $($target.Name) (`$TARGET_COMMIT)"
 "@
@@ -700,6 +786,7 @@ function Invoke-ServerSync() {
   Ensure-GitRepository
 
   $targetBranch = Get-CurrentBranchName
+  $remoteComposeCommand = Get-RemoteComposeCommand
   $effectiveRemoteGitUrl = Get-EffectiveRemoteGitUrl
   $remoteRepoParent = Get-ParentUnixPath $ServerRepoPath
   $remoteBootstrapClonePath = "/tmp/leitstelle-bootstrap-clone"
@@ -760,14 +847,14 @@ else
   echo '[db] Keine erreichbare bestehende Server-Datenbank gefunden. Backup wird fuer den Erstlauf uebersprungen.'
 fi
 echo '[db] Starte DB-Container fuer Restore.'
-docker compose --env-file '$ComposeEnvFile' up -d db
+$remoteComposeCommand up -d db
 for i in `$(seq 1 30); do
-  if docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; pg_isready -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1' </dev/null; then
+  if $remoteComposeCommand exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; pg_isready -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" >/dev/null 2>&1' </dev/null; then
     break
   fi
   sleep 2
 done
-DB_CONTAINER_ID=`$(docker compose --env-file '$ComposeEnvFile' ps -q db)
+DB_CONTAINER_ID=`$($remoteComposeCommand ps -q db)
 if [ -z "`$DB_CONTAINER_ID" ]; then
   echo '[db] DB-Container-ID konnte fuer den Restore nicht ermittelt werden.' >&2
   exit 1
@@ -775,9 +862,9 @@ fi
 echo '[db] Transferdatei wird in den DB-Container kopiert.'
 docker cp '$remoteDbDumpPath' "`$DB_CONTAINER_ID:$remoteDbContainerDumpPath"
 echo '[db] Ziel-Datenbank wird ersetzt.'
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"' </dev/null
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; gzip -dc "$remoteDbContainerDumpPath" | psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1' </dev/null
-ACTUAL_USER_COUNT=`$(docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -t -A -c "select count(*) from users;"' </dev/null | tr -d '[:space:]')
+$remoteComposeCommand exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; dropdb --force -U "`$POSTGRES_USER" --if-exists "`$POSTGRES_DB" && createdb -U "`$POSTGRES_USER" "`$POSTGRES_DB"' </dev/null
+$remoteComposeCommand exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; gzip -dc "$remoteDbContainerDumpPath" | psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -v ON_ERROR_STOP=1' </dev/null
+ACTUAL_USER_COUNT=`$($remoteComposeCommand exec -T db sh -lc 'export PGPASSWORD="`$POSTGRES_PASSWORD"; psql -U "`$POSTGRES_USER" -d "`$POSTGRES_DB" -t -A -c "select count(*) from users;"' </dev/null | tr -d '[:space:]')
 if [ -z "`$ACTUAL_USER_COUNT" ]; then
   echo '[db] Benutzeranzahl nach Restore konnte nicht ermittelt werden.' >&2
   exit 1
@@ -787,7 +874,7 @@ if [ "$localUserCount" -gt 0 ] && [ "`$ACTUAL_USER_COUNT" -eq 0 ]; then
   echo '[db] Restore hat keine Benutzer auf dem Server hinterlassen, obwohl die Quelle Benutzer enthielt.' >&2
   exit 1
 fi
-docker compose --env-file '$ComposeEnvFile' exec -T db sh -lc 'rm -f "$remoteDbContainerDumpPath"' </dev/null
+$remoteComposeCommand exec -T db sh -lc 'rm -f "$remoteDbContainerDumpPath"' </dev/null
 rm -f '$remoteDbDumpPath'
 "@
   } else {
@@ -795,7 +882,7 @@ rm -f '$remoteDbDumpPath'
   }
 
   $remoteMigrationCommand = if ($RunMigration) {
-    "docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
+    "$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
   } else {
     "echo 'Keine Migration angefordert.'"
   }
@@ -803,7 +890,7 @@ rm -f '$remoteDbDumpPath'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-docker compose --env-file '$ComposeEnvFile' run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
+$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
@@ -842,13 +929,13 @@ TARGET_COMMIT=`$(git rev-parse --short HEAD)
 echo "Server-Ziel: branch $targetBranch (`$TARGET_COMMIT)"
 $remoteRestoreCommand
 echo 'App-Services werden ohne Build-Cache neu gebaut.'
-docker compose --env-file '$ComposeEnvFile' build --pull --no-cache backend frontend worker
+$remoteComposeCommand build --pull --no-cache backend frontend worker
 echo 'Optionale Datenbankschritte nach dem Abgleich.'
 $remoteMigrationCommand
 $remoteSeedCommand
 echo 'Compose-Stack wird mit frisch gebauten App-Services aktualisiert.'
-docker compose --env-file '$ComposeEnvFile' up -d --force-recreate --remove-orphans backend frontend worker
-docker compose --env-file '$ComposeEnvFile' ps
+$remoteComposeCommand up -d --force-recreate --remove-orphans backend frontend worker
+$remoteComposeCommand ps
 $remoteHealthCommand
 echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
 "@
@@ -995,6 +1082,19 @@ function Read-YesNoDefaultYes([string]$Prompt) {
   return -not ($answer -eq "n" -or $answer -eq "no" -or $answer -eq "nein")
 }
 
+function Read-EnvironmentChoice() {
+  $defaultChoice = if ($Environment -eq "custom") { "prod" } else { $Environment }
+  while ($true) {
+    $selected = Read-InputOrDefault "Umgebung (prod/stage)" $defaultChoice
+    switch ($selected.Trim().ToLowerInvariant()) {
+      "prod" { return "prod" }
+      "stage" { return "stage" }
+      "custom" { Warn "custom ist im interaktiven Menue gesperrt. Bitte als CLI-Parameter mit expliziten Werten nutzen." }
+      default { Warn "Bitte prod oder stage eingeben." }
+    }
+  }
+}
+
 function Commit-InteractiveLocalChanges() {
   $statusLines = @(Get-WorkingTreeStatusLines)
   if ($statusLines.Count -eq 0) {
@@ -1042,6 +1142,7 @@ function Invoke-ScriptSubprocess([string]$ResolvedAction, [hashtable]$Additional
     "-ExecutionPolicy", "Bypass",
     "-File", $PSCommandPath,
     "-Action", $ResolvedAction,
+    "-Environment", $Environment,
     "-Server", $Server,
     "-ServerRepoPath", $ServerRepoPath,
     "-ComposeEnvFile", $ComposeEnvFile,
@@ -1087,6 +1188,7 @@ function Start-InteractiveMenu() {
     Write-Host "      LEITSTELLE OPERATIONS MENU" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ("Server      : {0}" -f $Server)
+    Write-Host ("Umgebung    : {0}" -f $Environment)
     Write-Host ("Repo-Path   : {0}" -f $ServerRepoPath)
     Write-Host ("Compose Env : {0}" -f $ComposeEnvFile)
     Write-Host ("Git-Repo    : {0}" -f $gitRepoStatus)
@@ -1126,6 +1228,8 @@ function Start-InteractiveMenu() {
           Pause
         }
         "3" {
+          $script:Environment = Read-EnvironmentChoice
+          Apply-EnvironmentPreset
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch" "main"
           Prepare-InteractiveGitAction -PushBeforeProceeding
@@ -1150,6 +1254,8 @@ function Start-InteractiveMenu() {
           Pause
         }
         "4" {
+          $script:Environment = Read-EnvironmentChoice
+          Apply-EnvironmentPreset
           $script:Branch = ""
           $script:Tag = Read-NonEmptyInput "Tag"
           $script:RunBackup = Read-YesNo "Backup vor Deploy ausfuehren?"
@@ -1173,6 +1279,8 @@ function Start-InteractiveMenu() {
           Pause
         }
         "5" {
+          $script:Environment = Read-EnvironmentChoice
+          Apply-EnvironmentPreset
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch" "main"
           Prepare-InteractiveGitAction
@@ -1210,6 +1318,8 @@ function Start-InteractiveMenu() {
           Pause
         }
         "7" {
+          $script:Environment = Read-EnvironmentChoice
+          Apply-EnvironmentPreset
           $script:Tag = ""
           $script:Branch = Read-InputOrDefault "Branch fuer GitHub und Server" "main"
           Prepare-InteractiveGitAction

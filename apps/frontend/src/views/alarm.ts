@@ -1,3 +1,9 @@
+/**
+ * Alarm-Pipeline- und Alarmdetail-Views.
+ *
+ * Die Datei rendert Filter, offene Alarmfaelle und die komplette Detailansicht
+ * fuer den selektierten Fall innerhalb des Leitstellen-Arbeitsplatzes.
+ */
 import type { AlarmCaseDetail, AlarmPipelineItem } from "@leitstelle/contracts";
 
 import { state } from "../state.js";

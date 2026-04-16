@@ -1,3 +1,6 @@
+/**
+ * Erzeugt Export- und Berichtsdokumente fuer Alarmfaelle und deren Verlaufsdaten.
+ */
 import { Buffer } from "node:buffer";
 
 import type {

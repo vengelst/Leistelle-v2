@@ -1,3 +1,6 @@
+/**
+ * Laedt und aktualisiert die Dashboard-Uebersicht fuer die operative Startansicht.
+ */
 import type { DashboardOverview } from "@leitstelle/contracts";
 
 import { apiRequest } from "../api.js";

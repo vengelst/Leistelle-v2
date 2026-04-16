@@ -1,3 +1,10 @@
+/**
+ * Zentrale Laufzeit-Helfer fuer alle Workspaces.
+ *
+ * Dieses Paket soll absichtlich klein bleiben: keine Fachlogik, sondern nur
+ * gemeinsame Regeln fuer Defaults, Pflichtwerte und einfache Typkonvertierung
+ * von Environment-Variablen.
+ */
 export type BaseRuntimeEnvironment = {
   nodeEnv: string;
   appVersion: string;
@@ -7,6 +14,7 @@ export type DatabaseRuntimeEnvironment = {
   databaseUrl: string;
 };
 
+// Basiskonfiguration, die Backend, Frontend-Builds und Worker gleich lesen.
 export function readBaseRuntimeEnvironment(env: NodeJS.ProcessEnv): BaseRuntimeEnvironment {
   return {
     nodeEnv: env.NODE_ENV ?? "development",
@@ -14,6 +22,7 @@ export function readBaseRuntimeEnvironment(env: NodeJS.ProcessEnv): BaseRuntimeE
   };
 }
 
+// Fehlerhafte Zahlwerte fallen kontrolliert auf einen bekannten Standard zurueck.
 export function parseNumber(rawValue: string | undefined, fallback: number): number {
   if (!rawValue) {
     return fallback;
@@ -23,6 +32,7 @@ export function parseNumber(rawValue: string | undefined, fallback: number): num
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+// Wir akzeptieren bewusst nur die klaren Env-Werte "true" und "false".
 export function parseBoolean(rawValue: string | undefined, fallback: boolean): boolean {
   if (!rawValue) {
     return fallback;
@@ -39,6 +49,7 @@ export function parseBoolean(rawValue: string | undefined, fallback: boolean): b
   return fallback;
 }
 
+// Vereinheitlicht den haeufigen Fall "gesetzt, aber leer".
 export function parseString(rawValue: string | undefined, fallback: string): string {
   if (!rawValue) {
     return fallback;
@@ -48,6 +59,7 @@ export function parseString(rawValue: string | undefined, fallback: string): str
   return normalized.length > 0 ? normalized : fallback;
 }
 
+// Fuer produktionskritische Werte ist ein expliziter Fehler hilfreicher als ein stiller Fallback.
 export function requireString(rawValue: string | undefined, name: string): string {
   const normalized = rawValue?.trim();
 
@@ -58,6 +70,7 @@ export function requireString(rawValue: string | undefined, name: string): strin
   return normalized;
 }
 
+// DB-Zugriff bleibt repo-weit an dieselbe Pflichtvariable gebunden.
 export function readDatabaseRuntimeEnvironment(env: NodeJS.ProcessEnv): DatabaseRuntimeEnvironment {
   return {
     databaseUrl: requireString(env.DATABASE_URL, "DATABASE_URL")

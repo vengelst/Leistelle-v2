@@ -1,3 +1,10 @@
+/**
+ * Browserseitige Alarmton-Steuerung.
+ *
+ * Die Datei verwaltet Audio-Freigabe, Baseline-Tracking und akustische
+ * Benachrichtigung bei neuen Alarmen, ohne dass die Fachlogik der Pipeline die
+ * Web-Audio-Details kennen muss.
+ */
 import type { AlarmPipelineItem, AlarmPriority } from "@leitstelle/contracts";
 
 import { state, type AlarmSoundPermissionState } from "./state.js";

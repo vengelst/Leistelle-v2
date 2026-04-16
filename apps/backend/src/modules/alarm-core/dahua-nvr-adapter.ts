@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt Dahua-NVR-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   DahuaNvrAlarmIngestionRequest,
   ExternalAlarmIngestionRequest,

@@ -1,3 +1,6 @@
+/**
+ * Testet Polling und Auswahlverhalten der Monitoring-Live-Aktualisierung.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

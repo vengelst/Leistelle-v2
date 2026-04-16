@@ -1,3 +1,6 @@
+/**
+ * Persistiert Kunden-, Standort-, Geraete- und Plan-Stammdaten in PostgreSQL.
+ */
 import { randomUUID } from "node:crypto";
 
 import type {

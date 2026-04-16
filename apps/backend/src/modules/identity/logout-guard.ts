@@ -1,3 +1,6 @@
+/**
+ * Beschreibt die Schnittstelle fuer Logout-Pruefungen im Identity-Modul.
+ */
 import type { LogoutCheckResult } from "./types.js";
 
 export type LogoutGuard = {

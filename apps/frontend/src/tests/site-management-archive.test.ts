@@ -1,3 +1,6 @@
+/**
+ * Testet Archivsicht und Archivaktionen in der Standortverwaltung.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

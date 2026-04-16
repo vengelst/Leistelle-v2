@@ -1,3 +1,10 @@
+/**
+ * Zentrale Request-Validierung des HTTP-Layers.
+ *
+ * Die Datei definiert Zod-Schemata und Reader fuer Bodies, Query-Parameter und
+ * Filterobjekte, damit Service- und Store-Schichten nur bereits validierte
+ * Eingaben sehen.
+ */
 import type { ZodType } from "zod";
 import { z } from "zod";
 

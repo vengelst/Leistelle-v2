@@ -1,3 +1,6 @@
+/**
+ * Rendert Listen, Filter und Editor fuer die operative Schichtplanung.
+ */
 import { state, shiftPlanningPeriodOptions, shiftPlanningStateOptions } from "../state.js";
 import { escapeHtml, formatDateTimeLocalValue, formatTimestamp } from "../utils.js";
 import { formatUserRoleLabel, formatUserStatusLabel, renderEmptyState, renderPill, renderSectionHeader } from "./common.js";

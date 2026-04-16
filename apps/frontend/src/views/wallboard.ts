@@ -1,3 +1,6 @@
+/**
+ * Rendert die read-only Grossansicht fuer Wallboard, Kennzahlen und Lagebild.
+ */
 import type { AlarmPipelineItem, DashboardMetric, ShiftRecord } from "@leitstelle/contracts";
 
 import { state } from "../state.js";

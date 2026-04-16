@@ -1,3 +1,10 @@
+/**
+ * Kleine PostgreSQL-Abstraktion des Backends.
+ *
+ * Die Datei kapselt Pool-Erzeugung, einfache Queries, Transaktionen und einen
+ * fruehen Verbindungscheck, damit andere Module nicht direkt mit `pg` arbeiten
+ * muessen.
+ */
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
 import type { BackendRuntimeConfig } from "../config/runtime.js";

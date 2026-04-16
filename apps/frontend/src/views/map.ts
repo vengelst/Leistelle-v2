@@ -1,3 +1,9 @@
+/**
+ * Kartenansicht der Leitstelle.
+ *
+ * Die Datei rendert die operative DACH-Karte, Marker-Interaktion und den
+ * zugehoerigen Standortkontext fuer den aktuell ausgewaehlten Marker.
+ */
 import type { SiteMapMarkerCollection } from "@leitstelle/contracts";
 
 import { state } from "../state.js";

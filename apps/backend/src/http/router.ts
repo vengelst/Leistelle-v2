@@ -1,3 +1,10 @@
+/**
+ * Zentrale HTTP-Routenauflosung des Backends.
+ *
+ * Diese Datei verbindet den Node-HTTP-Eingang mit den Fachservices:
+ * URL-Matching, Request-Validierung, Parameterlesen und die Rueckgabe im
+ * einheitlichen API-Envelope passieren hier.
+ */
 import type { IncomingMessage } from "node:http";
 
 import { AppError } from "@leitstelle/observability";
@@ -132,6 +139,7 @@ type RouteInput = {
 };
 
 export async function resolveRoute(input: RouteInput): Promise<RouteResponse> {
+  // Routing bleibt explizit und versionsgebunden unter /api/v1.
   const method = input.req.method ?? "GET";
   const url = new URL(input.req.url ?? "/", "http://localhost");
 

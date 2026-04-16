@@ -1,3 +1,6 @@
+/**
+ * Kapselt das sekundaere Operatorfenster samt Rollenparameter und Fenster-Synchronisation.
+ */
 import type { OperatorLayoutConfig, OperatorLayoutProfile, OperatorWindowRole } from "./state.js";
 
 const operatorWindowRoleSearchParam = "leitstelleWindow";

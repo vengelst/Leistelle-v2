@@ -1,3 +1,6 @@
+/**
+ * Beschreibt die gemeinsame Runtime-Schnittstelle fuer zustandsaendernde Frontend-Handler.
+ */
 import type { LeitstelleMode, WorkspaceId } from "../state.js";
 
 export type HandlerRuntime = {

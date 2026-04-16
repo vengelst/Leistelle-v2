@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Stammdatenvertraege.
+ *
+ * Diese Datei fasst Kunden, Standorte, Geraete, Plaene, globale Einstellungen
+ * und Standortmarker zusammen. Sie bildet damit die fachliche Grundlage fuer
+ * Pflegeoberflaechen, Karten und backendseitige Referenzen.
+ */
 import type { UserRole } from "./identity.js";
 import type { SiteTechnicalStatusRecord } from "./monitoring.js";
 import type { MediaBundleProfileKey } from "./alarm-core.js";

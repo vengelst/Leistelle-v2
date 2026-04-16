@@ -1,3 +1,6 @@
+/**
+ * Kapselt Hashing und Verifikation von Benutzerpasswoertern.
+ */
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 const KEY_LENGTH = 64;

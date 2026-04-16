@@ -1,3 +1,6 @@
+/**
+ * Rendert Login-, Zugriffs- und Administrationsansichten des Frontends.
+ */
 import type { UserAdminRecord, UserRole } from "@leitstelle/contracts";
 
 import { state, userAdministrationRoleOptions } from "../state.js";

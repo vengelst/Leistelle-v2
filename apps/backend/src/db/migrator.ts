@@ -1,3 +1,10 @@
+/**
+ * Laufzeit-Migrator fuer SQL-Migrationsdateien.
+ *
+ * Die Datei fuehrt versionierte SQL-Dateien in definierter Reihenfolge aus und
+ * merkt sich den Stand in `schema_migrations`, damit Deploys reproduzierbar
+ * bleiben.
+ */
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

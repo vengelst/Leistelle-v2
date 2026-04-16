@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Vertraege fuer das Schichtplanungsmodul.
+ *
+ * Die Datei beschreibt Planungszeiträume, Schichtzustaende und die Strukturen,
+ * mit denen geplante Dienste und operative Besetzung im Frontend und Backend
+ * dargestellt und bearbeitet werden.
+ */
 import type { UserRole, UserStatus } from "./identity.js";
 
 export const shiftPlanningPeriods = ["day", "week", "month", "year", "custom"] as const;

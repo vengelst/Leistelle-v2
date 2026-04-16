@@ -1,3 +1,6 @@
+/**
+ * Enthaelt die Frontend-Aktionen fuer Customers, Standorte, Geraete und Alarmquellen-Zuordnungen.
+ */
 import type {
   AlarmSourceMappingUpsertInput,
   AlarmWorkflowProfile,

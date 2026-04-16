@@ -1,3 +1,9 @@
+/**
+ * Gemeinsame Reporting- und Auswertungsvertraege.
+ *
+ * Die Datei definiert Filter, Perioden, Gruppierungsdimensionen und Rueckgaben
+ * fuer Auswertungen auf Basis bestehender Alarm-, Stoerungs- und Archivdaten.
+ */
 import type { AlarmType } from "./alarm-core.js";
 import type { MonitoringDisturbanceType } from "./monitoring.js";
 

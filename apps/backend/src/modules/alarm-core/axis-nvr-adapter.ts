@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt Axis-NVR-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   AxisNvrAlarmIngestionRequest,
   ExternalAlarmIngestionRequest,

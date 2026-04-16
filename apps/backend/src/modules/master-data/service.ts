@@ -1,3 +1,10 @@
+/**
+ * Fachservice fuer Stammdaten und globale Einstellungen.
+ *
+ * Die Datei erzwingt die Rollenregeln fuer schreibende Aenderungen und baut die
+ * Rueckgaben des Stores zu einem fuer das Frontend nutzbaren Gesamtueberblick
+ * zusammen.
+ */
 import { AppError, type AuditTrail } from "@leitstelle/observability";
 import type {
   AlarmSourceMappingUpsertInput,
@@ -47,6 +54,8 @@ export function createMasterDataService(input: CreateMasterDataServiceInput): Ma
       return markers;
     },
     async upsertCustomer(token, customerInput, requestId) {
+      // Nach jeder Mutation wird bewusst die komplette Overview frisch geladen,
+      // damit die Verwaltungsoberflaeche sofort wieder konsistent ist.
       const session = await requireEditor(input.identity, token);
       await input.store.upsertCustomer(customerInput);
       await auditMutation(input.audit, requestId, session.user.id, "master-data.customer.upsert");

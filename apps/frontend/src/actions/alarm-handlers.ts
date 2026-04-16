@@ -1,3 +1,6 @@
+/**
+ * Enthaltet die Frontend-Aktionen fuer Alarm-Pipeline, Falldetails, Medien und Abschlussablaeufe.
+ */
 import type {
   AlarmCaseDetail,
   AlarmCaseExportDocument,

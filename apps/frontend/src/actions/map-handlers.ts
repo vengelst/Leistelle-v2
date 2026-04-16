@@ -1,3 +1,6 @@
+/**
+ * Steuert Kartenaktionen, Marker-Selektion und Plan-Navigation im Standortkontext.
+ */
 import type { SiteMapMarkerCollection } from "@leitstelle/contracts";
 import type { AppHandlers } from "./events.js";
 import type { HandlerRuntime } from "./handler-runtime.js";

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 OUTPUT_FILE="${BACKUP_DIR}/leitstelle-db-${TIMESTAMP}.sql.gz"
 
@@ -29,3 +30,13 @@ else
 fi
 
 echo "Backup geschrieben: ${OUTPUT_FILE}"
+
+if [ "${BACKUP_RETENTION_DAYS}" -gt 0 ] 2>/dev/null; then
+  find "${BACKUP_DIR}" \
+    -maxdepth 1 \
+    -type f \
+    -name 'leitstelle-db-*.sql.gz' \
+    -mtime +"${BACKUP_RETENTION_DAYS}" \
+    -print \
+    -delete
+fi

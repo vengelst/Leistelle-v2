@@ -1,3 +1,6 @@
+/**
+ * Nimmt AJAX-Cloud- oder CMS-Eingaenge entgegen und delegiert sie in den bestehenden AJAX-Hub-Ingestion-Pfad.
+ */
 import type {
   AjaxCloudCmsCollectorStubRequest,
   AjaxHub2FourGJewellerAlarmIngestionRequest,

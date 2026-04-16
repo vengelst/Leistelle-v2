@@ -1,3 +1,9 @@
+/**
+ * Kompositionsmodul des Identity-Bereichs.
+ *
+ * Die Datei baut User-Store, Session-Store und Logout-Guard zusammen und
+ * liefert daraus den eigentlichen Identity-Service fuer das Backend.
+ */
 import type { AuditTrail, Logger } from "@leitstelle/observability";
 
 import type { BackendRuntimeConfig } from "../../config/runtime.js";

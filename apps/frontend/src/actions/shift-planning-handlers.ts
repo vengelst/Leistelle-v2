@@ -1,3 +1,6 @@
+/**
+ * Kapselt Laden, Filtern und Bearbeiten der Schichtplanung im Frontend.
+ */
 import type { ShiftPlanningOverview, ShiftPlanningState, ShiftUpsertInput } from "@leitstelle/contracts";
 
 import type { AppHandlers } from "./events.js";

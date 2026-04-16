@@ -1,3 +1,9 @@
+/**
+ * Views fuer Reporting und Archiv.
+ *
+ * Die Datei rendert Auswertungsfilter, Kennzahlen, Gruppierungen sowie die
+ * Archivsuche fuer abgeschlossene Alarmfaelle in einem gemeinsamen Bereich.
+ */
 import { state } from "../state.js";
 import { escapeHtml, formatTimestamp } from "../utils.js";
 import { canAccessArchiveWorkspace } from "./auth.js";

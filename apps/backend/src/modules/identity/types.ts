@@ -1,3 +1,10 @@
+/**
+ * Interne Typen und Servicevertraege des Identity-Moduls.
+ *
+ * Hier liegen die fachnahen Backend-Typen zwischen Stores und Service, die ueber
+ * die oeffentlichen Contracts hinaus fuer die Server-Implementierung benoetigt
+ * werden.
+ */
 import type {
   AuthenticatedUser,
   LoginRequest,

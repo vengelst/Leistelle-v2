@@ -1,3 +1,6 @@
+/**
+ * Ordnet externe Medien einem Alarmfall zu und bereitet ihre Uebernahme in den Medienpfad vor.
+ */
 import { randomUUID } from "node:crypto";
 
 import type {

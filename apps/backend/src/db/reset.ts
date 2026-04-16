@@ -1,6 +1,14 @@
+/**
+ * Technischer Reset der Entwicklungsdatenbank.
+ *
+ * Die Datei loescht die fachlichen Tabelleninhalte in definierter Reihenfolge,
+ * ohne das Schema selbst zu entfernen. Sie ist fuer reproduzierbare lokale
+ * Neuaufbauten gedacht, nicht fuer Produktionsbetriebe.
+ */
 import type { DatabaseClient } from "./client.js";
 
 export async function resetDatabase(database: DatabaseClient): Promise<void> {
+  assertDestructiveResetAllowed();
   await database.query(`
     truncate table
       monitoring_check_states,
@@ -40,4 +48,18 @@ export async function resetDatabase(database: DatabaseClient): Promise<void> {
     restart identity
     cascade
   `);
+}
+
+function assertDestructiveResetAllowed(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (process.env.ALLOW_DESTRUCTIVE_RESET === "true") {
+    return;
+  }
+
+  throw new Error(
+    "Destruktiver Datenbank-Reset ist in production gesperrt. Verwende ALLOW_DESTRUCTIVE_RESET=true nur fuer einen bewusst freigegebenen Lauf."
+  );
 }

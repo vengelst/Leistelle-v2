@@ -1,3 +1,6 @@
+/**
+ * Stellt die Handler fuer Benutzerverwaltung, Suche, Statuswechsel und Editorfluesse bereit.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import type { HandlerRuntime } from "../actions/handler-runtime.js";
 import type { AuthenticatedUser, UserAdministrationOverview, UserRole, UserUpsertInput } from "@leitstelle/contracts";

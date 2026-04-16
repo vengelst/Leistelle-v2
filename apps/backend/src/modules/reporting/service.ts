@@ -1,3 +1,10 @@
+/**
+ * Reporting-Service auf Basis bestehender Alarm- und Stoerungsdaten.
+ *
+ * Die Datei erzeugt Zeitraeume, laedt aggregierbare Rohdaten, berechnet
+ * Kennzahlen und Gruppierungen und liefert daraus die Reporting-Uebersicht fuer
+ * das Frontend.
+ */
 import type {
   ReportingDurationMetric,
   ReportingFilter,

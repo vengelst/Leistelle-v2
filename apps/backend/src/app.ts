@@ -1,3 +1,10 @@
+/**
+ * Zentrale Komposition des Backends.
+ *
+ * Hier werden Infrastruktur, Stores, Fachservices und Adapter zu einer
+ * lauffaehigen Anwendung zusammengesetzt. Die Datei ist damit der technische
+ * Verdrahtungsplan des gesamten Backend-Prozesses.
+ */
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { createAuditTrail, createLogger, type Logger } from "@leitstelle/observability";
@@ -43,6 +50,7 @@ type App = {
 };
 
 export async function createApp(config: BackendRuntimeConfig): Promise<App> {
+  // Produktionssicherheit wird vor dem Modulaufbau geprueft.
   assertProductionAppSafety(config);
   const logger = createLogger({ service: config.serviceName, environment: config.environment });
   const database = createDatabaseClient(config);
@@ -133,7 +141,10 @@ export async function createApp(config: BackendRuntimeConfig): Promise<App> {
   return {
     logger,
     async handle(req, res) {
-      const context = createRequestContext(req);
+      // Jeder Request laeuft zentral durch CORS, Routing, Fehlerabbildung und Audit.
+      const context = createRequestContext(req, {
+        trustProxy: config.http.trustProxy
+      });
       const origin = req.headers.origin;
 
       if (origin && origin === config.cors.origin) {
@@ -210,6 +221,8 @@ export async function createApp(config: BackendRuntimeConfig): Promise<App> {
           requestId: context.requestId,
           method: req.method ?? "UNKNOWN",
           path: req.url ?? "/",
+          clientIp: context.clientIp,
+          protocol: context.protocol,
           problem
         });
 

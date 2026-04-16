@@ -1,3 +1,6 @@
+/**
+ * Stellt Lese- und Exportfunktionen fuer archivierte Alarmfaelle bereit.
+ */
 import type {
   AlarmArchiveFilter,
   AlarmArchiveResult,

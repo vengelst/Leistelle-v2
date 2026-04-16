@@ -1,3 +1,6 @@
+/**
+ * Baut CSV-Exporte fuer Archiv- und Reportingdaten aus den geladenen Frontend-Modellen.
+ */
 import type { AlarmArchiveResult, ReportingOverview } from "@leitstelle/contracts";
 
 export function buildArchiveExportCsv(archive: AlarmArchiveResult): string {

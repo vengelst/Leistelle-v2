@@ -1,3 +1,9 @@
+/**
+ * Reine Navigationskonventionen des Frontends.
+ *
+ * Die Datei haelt die erlaubten Workspace- und Leitstellen-Pfade im
+ * Hash-Routing zusammen und bildet Regionen auf die grossen Arbeitsbereiche ab.
+ */
 import type { UiShellDescriptor } from "@leitstelle/contracts";
 
 import type { LeitstelleMode, WorkspaceId } from "../state.js";

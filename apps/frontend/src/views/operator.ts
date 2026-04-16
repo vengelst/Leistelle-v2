@@ -1,3 +1,10 @@
+/**
+ * Root-View fuer den Leitstellen-Arbeitsbereich.
+ *
+ * Die Datei schaltet zwischen den Leitstellen-Modi wie Arbeitsplatz,
+ * Alarmpipeline, Stoerungspipeline, dediziertem Operator-Screen und Wallboard
+ * um.
+ */
 import { state, type LeitstelleMode } from "../state.js";
 import { hrefForLeitstelleMode } from "../navigation/routes.js";
 import { renderEmptyState, renderPill, renderSectionHeader } from "./common.js";

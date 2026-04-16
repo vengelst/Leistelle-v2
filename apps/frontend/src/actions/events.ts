@@ -1,3 +1,10 @@
+/**
+ * Zentrale Event-Bindings zwischen DOM und den App-Handlern.
+ *
+ * Diese Datei kennt die konkreten Browser-Events und DOM-Selektoren und
+ * verbindet sie mit den bereits zusammengesetzten Handler-Funktionen. Dadurch
+ * bleiben Views rein rendernd und Fachhandler frei von DOM-Wissen.
+ */
 import type { AlarmCaseExportFormat, AlarmMediaAccessMode, UiShellDescriptor } from "@leitstelle/contracts";
 
 import { bindLeafletMap } from "../leaflet-map.js";

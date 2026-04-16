@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt Uniview-IP-Kamera-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   ExternalAlarmIngestionRequest,
   ExternalAlarmIngestionResult,

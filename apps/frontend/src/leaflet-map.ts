@@ -1,3 +1,6 @@
+/**
+ * Verwaltet die Leaflet-Karte fuer Standortmarker, Selektion und Kartenfokus im Frontend.
+ */
 import type { SiteMapMarkerCollection } from "@leitstelle/contracts";
 
 import { state } from "./state.js";

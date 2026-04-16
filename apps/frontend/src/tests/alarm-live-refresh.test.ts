@@ -1,3 +1,6 @@
+/**
+ * Testet Start, Pausierung und Aufraeumen des Alarm-Live-Refresh-Controllers.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

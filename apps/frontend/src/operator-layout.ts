@@ -1,3 +1,6 @@
+/**
+ * Verwaltet Presets, Persistenz und Positionslogik fuer das Operator-Screen-Layout.
+ */
 import type {
   OperatorLayoutConfig,
   OperatorLayoutProfile,

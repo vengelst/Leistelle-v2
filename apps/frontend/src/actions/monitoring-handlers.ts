@@ -1,3 +1,6 @@
+/**
+ * Verwaltet Laden, Filterung und Detailaktionen der technischen Stoerungspipeline.
+ */
 import type {
   MonitoringDisturbanceDetail,
   MonitoringPipelineItem,

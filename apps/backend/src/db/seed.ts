@@ -1,3 +1,11 @@
+/**
+ * Vollstaendige Entwicklungs- und Demo-Befuellung der Leitstelle-Datenbank.
+ *
+ * Die Datei legt rollenbasierte Demo-Benutzer, Kataloge, Stammdaten, Alarmfaelle,
+ * Monitoring-Daten und weitere Referenzdaten an. Sie ist bewusst umfangreich,
+ * weil sie die fachlichen Startdaten fuer lokale Entwicklung, Smoke-Tests und
+ * reproduzierbare Demo-Szenarien zentral bereitstellt.
+ */
 import { randomUUID } from "node:crypto";
 
 import { monitoringDisturbanceTypes } from "@leitstelle/contracts";
@@ -16,6 +24,9 @@ type SeedUser = {
 };
 
 export async function seedDatabase(database: DatabaseClient, bootstrapPassword: string): Promise<void> {
+  assertDestructiveSeedAllowed();
+  // Die Seed-Daten laufen in einer Transaktion, damit lokale Neuaufbauten nicht
+  // in einem halb befuellten Zustand enden.
   const users = createSeedUsers(bootstrapPassword);
 
   await database.withTransaction(async (client) => {
@@ -972,6 +983,20 @@ export async function seedDatabase(database: DatabaseClient, bootstrapPassword: 
       }
     }
   });
+}
+
+function assertDestructiveSeedAllowed(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (process.env.ALLOW_DESTRUCTIVE_SEED === "true") {
+    return;
+  }
+
+  throw new Error(
+    "Destruktives Seeding ist in production gesperrt. Verwende ALLOW_DESTRUCTIVE_SEED=true nur fuer einen bewusst freigegebenen Lauf."
+  );
 }
 
 async function upsertCredentialWithRoles(

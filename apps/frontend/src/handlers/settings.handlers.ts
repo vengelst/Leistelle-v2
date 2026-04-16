@@ -1,3 +1,6 @@
+/**
+ * Kapselt Handler fuer Settings-Navigation sowie globale und workflowbezogene Formulare.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import { state, type SettingsSection } from "../state.js";
 

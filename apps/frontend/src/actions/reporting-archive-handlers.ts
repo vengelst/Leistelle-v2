@@ -1,3 +1,6 @@
+/**
+ * Kapselt Frontend-Aktionen fuer Reportingfilter, Archivsuche und Exportausloeser.
+ */
 import type {
   AlarmArchiveFilter,
   AlarmArchiveResult,

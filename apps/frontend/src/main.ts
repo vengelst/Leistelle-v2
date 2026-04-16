@@ -1,3 +1,10 @@
+/**
+ * Frontend-Einstiegspunkt.
+ *
+ * Diese Datei bootstrapped den kompletten Browser-Client: initiale
+ * UI-Einstellungen, Router, Handler, Render-Batching, Operator-Fenster-Sync
+ * und globale Controller fuer Live-Refresh und Alarmton.
+ */
 import type { AppHandlers } from "./actions/events.js";
 
 import { createMapHandlers } from "./actions/map-handlers.js";
@@ -64,6 +71,8 @@ const runtime = {
   runRenderBatch
 };
 
+// Alle UI- und Fachhandler werden zentral verdrahtet, damit die Views selbst
+// moeglichst zustandsarm bleiben.
 const alarmSoundController = createAlarmSoundController({
   onStateChange: render
 });

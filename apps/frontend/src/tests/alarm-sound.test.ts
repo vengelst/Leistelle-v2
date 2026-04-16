@@ -1,3 +1,6 @@
+/**
+ * Prueft Alarmton-Verhalten, Baseline-Logik und erneute Signalisierung neuer Prioritaeten.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

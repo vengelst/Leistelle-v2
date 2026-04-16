@@ -1,3 +1,10 @@
+/**
+ * Zusammenbau der allgemeinen UI-Handler.
+ *
+ * Hier werden fachneutrale Shell-, Navigations- und Komfortfunktionen
+ * gebuendelt, die nicht zu einem einzelnen Leitstellen- oder Stammdatenmodul
+ * gehoeren.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import type { HandlerRuntime } from "../actions/handler-runtime.js";
 import type { WorkspaceRouter } from "../navigation/router.js";

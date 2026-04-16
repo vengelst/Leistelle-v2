@@ -1,3 +1,6 @@
+/**
+ * Persistiert und verwaltet Identity-Sessions in der Datenbank.
+ */
 import { randomBytes } from "node:crypto";
 
 import { AppError } from "@leitstelle/observability";

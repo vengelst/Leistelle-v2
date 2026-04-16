@@ -1,3 +1,6 @@
+/**
+ * Deckt die Medienvorschau aktiver Alarmfaelle im Operator-Screen ab.
+ */
 import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
 import test from "node:test";

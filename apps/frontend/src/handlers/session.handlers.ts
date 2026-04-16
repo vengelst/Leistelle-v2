@@ -1,3 +1,6 @@
+/**
+ * Verwaltet Login, Logout und Session-Hydrierung fuer die Frontend-Sitzung.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import type { HandlerRuntime } from "../actions/handler-runtime.js";
 import type { LoginMode, LoginResponse, SessionInfo } from "@leitstelle/contracts";

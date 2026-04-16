@@ -1,3 +1,10 @@
+/**
+ * Tests fuer den technischen Monitoring-Scheduler der Worker-Runtime.
+ *
+ * Die Datei deckt Startlauf, Intervallausfuehrung, Overlap-Schutz und
+ * Fehlerverhalten ab, damit die Laufsteuerung ohne Backend-Fachlogik
+ * nachvollziehbar abgesichert bleibt.
+ */
 import assert from "node:assert/strict";
 import { setImmediate as defer } from "node:timers/promises";
 import test from "node:test";

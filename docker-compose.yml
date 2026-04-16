@@ -33,6 +33,7 @@ services:
       HTTP_TRUST_PROXY: ${HTTP_TRUST_PROXY:-true}
       AUTH_SESSION_TTL_HOURS: ${AUTH_SESSION_TTL_HOURS:-8}
       AUTH_BOOTSTRAP_PASSWORD: ${AUTH_BOOTSTRAP_PASSWORD:?Set AUTH_BOOTSTRAP_PASSWORD via .env.production or environment}
+      ALLOW_DESTRUCTIVE_SEED: ${ALLOW_DESTRUCTIVE_SEED:-false}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN via .env.production or environment}
       MEDIA_STORAGE_TYPE: ${MEDIA_STORAGE_TYPE:-reference}
       MEDIA_STORAGE_BASE_URL: ${MEDIA_STORAGE_BASE_URL:-}
@@ -61,6 +62,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      FRONTEND_API_BASE_URL: ${FRONTEND_API_BASE_URL:-}
     ports:
       - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PUBLIC_PORT:-4173}:80"
     healthcheck:

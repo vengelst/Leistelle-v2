@@ -1,3 +1,6 @@
+/**
+ * Verknuepft Archiv- und Reportingaktionen mit Routing und Detailoeffnung im Frontend.
+ */
 import type { AppHandlers } from "../actions/events.js";
 import type { WorkspaceRouter } from "../navigation/router.js";
 

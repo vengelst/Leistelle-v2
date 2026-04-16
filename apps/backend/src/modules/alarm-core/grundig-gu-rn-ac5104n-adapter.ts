@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt Grundig-GU-RN-AC5104N-Recorder-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   ExternalAlarmIngestionRequest,
   ExternalAlarmIngestionResult,

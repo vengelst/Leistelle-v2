@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Vertraege des Identity-Moduls.
+ *
+ * Die Datei beschreibt Rollen, Benutzerstatus, Login-Formate, Sessions und die
+ * Verwaltungsstrukturen fuer Benutzer und Zugriff. Dadurch nutzen API, UI und
+ * Persistenz dieselben Identity-Typen.
+ */
 export const userRoles = ["administrator", "leitstellenleiter", "operator", "service"] as const;
 
 export type UserRole = (typeof userRoles)[number];

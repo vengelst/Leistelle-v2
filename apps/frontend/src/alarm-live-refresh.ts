@@ -1,3 +1,10 @@
+/**
+ * Technischer Auto-Refresh-Controller fuer die offene Alarmpipeline.
+ *
+ * Die Datei kuemmert sich nur um Taktung, Sichtbarkeitslogik und
+ * Ueberlappungsschutz. Welche Daten neu geladen werden, wird ueber die
+ * uebergebenen Callback-Funktionen gesteuert.
+ */
 type AlarmLiveRefreshResult = {
   changed: boolean;
   selectedChanged: boolean;

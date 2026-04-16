@@ -1,3 +1,6 @@
+/**
+ * Persistiert technische Monitoring-Pruefungen, Stoerungen und zugehoerige Notizen.
+ */
 import { randomUUID } from "node:crypto";
 
 import type {

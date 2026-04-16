@@ -1,3 +1,11 @@
+/**
+ * Gemeinsame Vertraege fuer den fachlichen Alarm-Core.
+ *
+ * Die Datei enthaelt den zentralen Typkatalog fuer Alarmfaelle, Medien,
+ * Pipeline, Bewertungen, Aktionen, Archiv, Ingestion und zugehoerige
+ * Hilfskataloge. Backend, Frontend und Worker beziehen hieraus dieselbe
+ * fachliche Sprache.
+ */
 export const alarmPriorities = ["low", "normal", "high", "critical"] as const;
 export const alarmTypes = [
   "motion",

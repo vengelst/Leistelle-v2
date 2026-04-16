@@ -1,3 +1,10 @@
+/**
+ * Kernlogik fuer periodische technische Checks.
+ *
+ * Die Datei berechnet den aktiven Check-Plan, fuehrt Probearten aus, aktualisiert
+ * Check-Zustaende und oeffnet, aktualisiert oder schliesst daraus technische
+ * Stoerungen.
+ */
 import net from "node:net";
 
 import type {

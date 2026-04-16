@@ -1,3 +1,6 @@
+/**
+ * Enthaelt kleine Hilfsfunktionen fuer die Normalisierung vendor-spezifischer Alarmadapter.
+ */
 export function formatVendorEventLabel(eventType: string): string {
   return eventType
     .split("_")

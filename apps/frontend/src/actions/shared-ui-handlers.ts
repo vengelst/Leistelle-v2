@@ -1,3 +1,6 @@
+/**
+ * Buendelt gemeinsame UI-Aktionen wie Theme, Shell-Zustaende und Operator-Layoutsteuerung.
+ */
 import type { AppHandlers } from "./events.js";
 import type { WorkspaceRouter } from "../navigation/router.js";
 

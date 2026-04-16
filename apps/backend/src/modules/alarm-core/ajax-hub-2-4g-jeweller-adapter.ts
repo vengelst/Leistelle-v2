@@ -1,3 +1,6 @@
+/**
+ * Uebersetzt AJAX Hub 2 (4G) Jeweller-Ereignisse in das externe Alarm-Ingestion-Format.
+ */
 import type {
   AjaxHub2FourGJewellerAlarmIngestionRequest,
   ExternalAlarmIngestionRequest,

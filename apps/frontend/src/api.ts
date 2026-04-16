@@ -1,5 +1,16 @@
+/**
+ * Kapselt Frontend-API-Requests, Session-Token und Basis-URL-Aufloesung.
+ */
 const apiBaseUrl = resolveApiBaseUrl();
 export const storageKey = "leitstelle.session.token";
+
+declare global {
+  interface Window {
+    __LEITSTELLE_CONFIG__?: {
+      apiBaseUrl?: string;
+    };
+  }
+}
 
 export async function apiRequest<TData>(path: string, init: RequestInit): Promise<TData> {
   const token = localStorage.getItem(storageKey);
@@ -15,6 +26,11 @@ export async function apiRequest<TData>(path: string, init: RequestInit): Promis
 function resolveApiBaseUrl(): string {
   if (typeof window === "undefined") {
     return "http://127.0.0.1:8080";
+  }
+
+  const configuredBaseUrl = window.__LEITSTELLE_CONFIG__?.apiBaseUrl?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/u, "");
   }
 
   const { hostname, origin, port } = window.location;

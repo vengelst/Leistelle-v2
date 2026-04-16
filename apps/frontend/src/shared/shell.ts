@@ -1,3 +1,6 @@
+/**
+ * Beschreibt Titel, Regionen und Kurztexte der gemeinsamen Frontend-Shell.
+ */
 import type { UiShellDescriptor } from "@leitstelle/contracts";
 
 export const shell: UiShellDescriptor = {

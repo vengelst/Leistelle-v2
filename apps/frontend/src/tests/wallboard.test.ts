@@ -1,3 +1,6 @@
+/**
+ * Verifiziert Routing, Darstellung und Datenfluesse des Wallboard-Modus.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

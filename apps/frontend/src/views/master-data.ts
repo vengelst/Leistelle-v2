@@ -1,3 +1,9 @@
+/**
+ * Views fuer Stammdaten, Standortverwaltung und Einstellungen.
+ *
+ * Diese Datei deckt einen grossen Verwaltungsbereich ab: Standortlisten,
+ * Detailpflege, Technik, Plaene, Alarmquellen und administrative Einstellungen.
+ */
 import type { DeviceType, MasterDataOverview, SiteDevice } from "@leitstelle/contracts";
 
 import { state, deviceTypeOptions, planKindOptions, siteStatusOptions, userAdministrationRoleOptions, type SettingsSection } from "../state.js";

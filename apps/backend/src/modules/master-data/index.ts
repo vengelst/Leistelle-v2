@@ -1,3 +1,9 @@
+/**
+ * Kompositionsmodul fuer Stammdaten.
+ *
+ * Die Datei verdrahtet Store und Service des Master-Data-Moduls zu einem
+ * einsatzfaehigen Backend-Baustein.
+ */
 import type { AuditTrail } from "@leitstelle/observability";
 
 import type { DatabaseClient } from "../../db/client.js";

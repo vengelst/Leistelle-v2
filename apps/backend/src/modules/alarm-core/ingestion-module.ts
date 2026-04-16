@@ -1,3 +1,6 @@
+/**
+ * Verdrahtet die Alarm-Ingestion mit Store, Zuweisung, Audit und optionalem Logging.
+ */
 import type { AuditTrail, Logger } from "@leitstelle/observability";
 
 import type { DatabaseClient } from "../../db/client.js";

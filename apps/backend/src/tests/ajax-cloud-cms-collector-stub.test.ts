@@ -1,3 +1,6 @@
+/**
+ * Testet den Collector-Stub fuer AJAX-Cloud- und CMS-Eingaenge vor der Hub-Delegation.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

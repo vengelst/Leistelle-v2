@@ -1,3 +1,6 @@
+/**
+ * Definiert die internen Typen und Storevertraege des Schichtplanungsmoduls.
+ */
 import type { ShiftPlanningFilter, UserRole, UserStatus } from "@leitstelle/contracts";
 
 export type ShiftPlanEntity = {

@@ -1,3 +1,9 @@
+/**
+ * Kleine systemweite API-Grundtypen.
+ *
+ * Diese Datei enthaelt generische Antwort- und Fehlerformate sowie technische
+ * Systeminformationen, die moduluebergreifend verwendet werden.
+ */
 export type ApiEnvelope<TData> = {
   data: TData;
   meta: {

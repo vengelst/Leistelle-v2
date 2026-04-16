@@ -1,3 +1,6 @@
+/**
+ * Verifiziert das Schliessen des Geraetemodals ueber Escape und Backdrop.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

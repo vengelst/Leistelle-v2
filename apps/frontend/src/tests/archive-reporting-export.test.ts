@@ -1,3 +1,6 @@
+/**
+ * Verifiziert die CSV-Erzeugung fuer Archiv- und Reporting-Exporte.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

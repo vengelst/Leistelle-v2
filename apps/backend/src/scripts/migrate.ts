@@ -1,3 +1,9 @@
+/**
+ * CLI-Einstiegspunkt fuer Datenbankmigrationen.
+ *
+ * Die eigentliche Migrationslogik lebt im DB-Modul; dieses Skript startet nur
+ * Konfiguration, Verbindung und den kontrollierten Prozessablauf.
+ */
 import { createDatabaseClient } from "../db/client.js";
 import { runMigrations } from "../db/migrator.js";
 import { loadBackendRuntimeConfig } from "../config/runtime.js";

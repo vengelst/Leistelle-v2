@@ -1,3 +1,9 @@
+/**
+ * Interne Typen und Store-Vertraege des Monitoring-Moduls.
+ *
+ * Diese Datei beschreibt die Backend-internen Arbeitsstrukturen fuer Checks,
+ * Stoerungen, Servicefaelle und technische Standortzustaende.
+ */
 import type {
   MonitoringDisturbanceAcknowledgeInput,
   MonitoringDisturbanceDetail,

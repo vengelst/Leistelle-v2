@@ -1,3 +1,6 @@
+/**
+ * Erzeugt aufloesbare Dokumente fuer den Zugriff auf Alarmmedien aus internen Referenzen.
+ */
 import { Buffer } from "node:buffer";
 
 import type { AlarmMediaAccessDocument, AlarmMediaAccessMode } from "@leitstelle/contracts";

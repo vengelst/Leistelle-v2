@@ -1,3 +1,10 @@
+/**
+ * Gemeinsame Vertraege fuer technisches Monitoring und Stoerungen.
+ *
+ * Die Datei beschreibt Checks, Check-Ergebnisse, technische Gesamtzustaende,
+ * offene Stoerungen und deren Detailansichten. Damit bleibt Monitoring
+ * fachlich getrennt vom Alarm-Core, verwendet aber dieselbe Vertragsbasis.
+ */
 export const monitoringDisturbanceTypes = [
   "router_unreachable",
   "nvr_unreachable",

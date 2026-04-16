@@ -1,3 +1,6 @@
+/**
+ * Testet die Normalisierung von AJAX-Hub-2-(4G)-Jeweller-Ereignissen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

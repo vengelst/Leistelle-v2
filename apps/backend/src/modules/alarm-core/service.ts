@@ -1,3 +1,6 @@
+/**
+ * Enthaelt die zentrale Fachlogik fuer Alarm-Ingestion, Statuswechsel und Fallfortschritt.
+ */
 import type {
   AlarmEventCreateInput,
   AlarmEventRecord,

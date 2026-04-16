@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: leitstelle
+          POSTGRES_USER: leitstelle
+          POSTGRES_PASSWORD: leitstelle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U leitstelle -d leitstelle"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://leitstelle:leitstelle@127.0.0.1:5432/leitstelle
+      AUTH_BOOTSTRAP_PASSWORD: CiBootstrapPassword!2026
+      FRONTEND_ORIGIN: http://127.0.0.1:4173
+      FRONTEND_API_BASE_URL: http://127.0.0.1:8080
+      HTTP_TRUST_PROXY: false
+      ALLOW_DESTRUCTIVE_RESET: true
+      ALLOW_DESTRUCTIVE_SEED: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Backend tests
+        run: npm run test:backend
+
+      - name: Frontend tests
+        run: npm run test:frontend
+
+      - name: Worker tests
+        run: npm run test:worker
+
+      - name: Docker compose config (prod)
+        run: docker compose --env-file .env.production.example config --quiet
+
+      - name: Docker compose config (stage overlay)
+        run: docker compose --env-file .env.stage.example -f docker-compose.yml -f docker-compose.stage.yml config --quiet
+
+      - name: Docker build smoke
+        run: docker compose build backend frontend worker

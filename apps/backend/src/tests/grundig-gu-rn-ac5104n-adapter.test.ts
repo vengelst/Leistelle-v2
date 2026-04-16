@@ -1,3 +1,6 @@
+/**
+ * Testet die Normalisierung von Grundig-GU-RN-AC5104N-Recorder-Ereignissen.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

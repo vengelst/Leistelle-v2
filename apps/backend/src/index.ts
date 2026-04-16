@@ -1,3 +1,10 @@
+/**
+ * Startpunkt des Backend-Prozesses.
+ *
+ * Die Datei laedt die Runtime-Konfiguration, prueft einmal frueh die
+ * Datenbankverbindung und startet danach den HTTP-Server mit der in `app.ts`
+ * zusammengesetzten Anwendung.
+ */
 import { createServer } from "node:http";
 
 import { createApp } from "./app.js";
