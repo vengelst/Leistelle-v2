@@ -19,6 +19,7 @@ param(
   [switch]$ConfirmSeed,
   [switch]$RunBackup,
   [switch]$SyncDatabase,
+  [switch]$AllowProdDatabaseSync,
   [string]$BackupDir = "/opt/leitstelle/backups",
   [switch]$SkipHealthCheck
 )
@@ -36,7 +37,7 @@ function Get-EnvironmentPreset([string]$Name) {
   switch ($Name) {
     "prod" {
       return [PSCustomObject]@{
-        Server = "root@vivahome.de"
+        Server = "root@leitstelle.vivahome.de"
         ServerRepoPath = "/opt/leitstelle"
         ComposeEnvFile = ".env.production"
         HealthUrl = "http://127.0.0.1:18080/health"
@@ -250,8 +251,12 @@ function Validate-Arguments() {
     Write-Warn "Seed wird ohne Migration ausgefuehrt. Das ist erlaubt, sollte in Produktion aber bewusst sein."
   }
 
-  if ($SyncDatabase -and $Environment -ne "stage") {
-    Fail "SyncDatabase ist ausschliesslich fuer -Environment stage erlaubt. Fuer prod und custom ist der Datenbanktransfer gesperrt."
+  if ($SyncDatabase -and $Environment -eq "custom") {
+    Fail "SyncDatabase ist fuer -Environment custom gesperrt. Verwende prod oder stage."
+  }
+
+  if ($SyncDatabase -and $Environment -eq "prod" -and -not $AllowProdDatabaseSync) {
+    Fail "SyncDatabase nach prod ist gesperrt. Fuer bewusstes Ueberschreiben zusaetzlich -AllowProdDatabaseSync setzen."
   }
 
   if ($Environment -eq "custom") {
@@ -800,6 +805,9 @@ function Invoke-ServerSync() {
   Write-Info ("Server: {0}" -f $Server)
   Write-Info ("Remote Git: {0}" -f $effectiveRemoteGitUrl)
   Write-Info ("DB-Transfer: {0}" -f $(if ($SyncDatabase) { "ja" } else { "nein" }))
+  if ($SyncDatabase -and $Environment -eq "prod") {
+    Write-Info ("PROD-Override freigegeben: {0}" -f $(if ($AllowProdDatabaseSync) { "ja" } else { "nein" }))
+  }
 
   Show-GitStatus
   Assert-SelectedBranchMatchesCheckedOut "Serverabgleich"
@@ -1336,6 +1344,16 @@ function Start-InteractiveMenu() {
           $script:SyncDatabase = Read-YesNo "Lokale Datenbank mit Inhalten auf den Server uebertragen?"
           if ($SyncDatabase) {
             $script:RunBackup = $true
+            if ($Environment -eq "prod") {
+              if (-not (Read-YesNo "WARNUNG: PROD-Datenbank wird ueberschrieben. Wirklich fortfahren?")) {
+                Fail "PROD-DB-Transfer vom Benutzer abgebrochen."
+              }
+              $script:AllowProdDatabaseSync = $true
+            } else {
+              $script:AllowProdDatabaseSync = $false
+            }
+          } else {
+            $script:AllowProdDatabaseSync = $false
           }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach dem Abgleich ausfuehren?")
           Validate-Arguments
@@ -1347,6 +1365,7 @@ function Start-InteractiveMenu() {
             RunSeed = [bool]$RunSeed
             ConfirmSeed = [bool]$ConfirmSeed
             SyncDatabase = [bool]$SyncDatabase
+            AllowProdDatabaseSync = [bool]$AllowProdDatabaseSync
             SkipHealthCheck = [bool]$SkipHealthCheck
           }
           Pause
