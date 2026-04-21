@@ -458,6 +458,7 @@ test("operator acknowledge reuses reservation and moves the case into active pro
 
 test("operator ui structure highlights primary actions and readable status labels", () => {
   resetSessionScopedState();
+  state.leitstelleMode = "operator";
   state.session = {
     token: "token-1",
     expiresAt: "2026-04-10T18:00:00.000Z",
@@ -698,6 +699,9 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       toggleKiosk: () => undefined,
       setShellMenuPosition: () => undefined,
       setFalseAlarmCloseMode: () => undefined,
+      setAlarmPipelineTableColumnVisible: () => undefined,
+      setAlarmPipelineTableColumnWidth: () => undefined,
+      setAlarmPipelineTablePanelWidth: () => undefined,
       openSecondaryOperatorWindow: () => undefined,
       toggleOperatorLayoutEditor: () => undefined,
       applyOperatorLayoutPreset: () => undefined,

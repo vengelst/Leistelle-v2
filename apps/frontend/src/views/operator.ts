@@ -35,20 +35,12 @@ export function renderOperatorWorkspace(): string {
   const monitoringPipelineBusy = Boolean(state.pendingOperations["open-disturbances"]);
   const mode = state.leitstelleMode;
 
-  if (mode === "operator") {
-    return renderOperatorScreen();
-  }
-
-  if (mode === "intake") {
+  if (mode === "operator" || mode === "intake" || mode === "alarms") {
     return renderOperatorScreen();
   }
 
   if (mode === "wallboard") {
     return renderWallboardScreen();
-  }
-
-  if (mode === "alarms") {
-    return `<section class="operator-workspace operator-workspace-empty" data-operator-keyboard-root="true"></section>`;
   }
 
   return `
@@ -67,7 +59,7 @@ export function renderOperatorWorkspace(): string {
             ${renderModeButton("wallboard", "Wallboard", mode)}
           </div>
           <div class="actions">
-            <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline im Tab</a>
+            <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="leitstelle-alarm-pipeline">Alarm-Pipeline im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("disturbances")}" target="_blank" rel="noopener noreferrer">Stoerungen im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("operator")}" target="_blank" rel="noopener noreferrer">Alarmannahme im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("intake")}" target="_blank" rel="noopener noreferrer">Alarm-Eingang im Tab</a>

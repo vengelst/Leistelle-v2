@@ -145,7 +145,7 @@ test("alarm detail renders follow-up controls and active status in the existing 
   assert.ok(html.includes("Wiedervorlage entfernen"));
 });
 
-test("alarm pipeline mode renders an empty screen only", () => {
+test("alarm pipeline mode renders alarm table only", () => {
   resetSessionScopedState();
   state.session = createSession(["operator"]);
   state.activeWorkspace = "leitstelle";
@@ -222,7 +222,7 @@ test("alarm pipeline mode renders an empty screen only", () => {
 
   const html = renderApp();
 
-  assert.equal(html.trim(), '<main class="alarm-pipeline-empty-screen"></main>');
+  assert.ok(html.includes("operator-intake-queue-table"));
   assert.ok(!html.includes("Hauptnavigation"));
   assert.ok(!html.includes("Leitstellenmodus"));
   assert.ok(!html.includes("Alarmton"));
@@ -300,6 +300,7 @@ test("kiosk toggle stores shell preference without second app", () => {
       alarmSoundEnabledStorageKey: "leitstelle.alarm.sound.enabled",
       alarmSoundIncludeNormalPriorityStorageKey: "leitstelle.alarm.sound.include-normal",
       falseAlarmCloseModeStorageKey: "leitstelle.alarm.false-close-mode",
+      alarmPipelineTableStorageKey: "leitstelle.alarm.pipeline-table",
       applyThemeMode: () => undefined,
       armAlarmSound: async () => undefined,
       broadcastOperatorLayoutUpdate: () => undefined,

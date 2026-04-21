@@ -17,6 +17,7 @@ import { renderReportingSection, renderArchiveSection } from "./reporting.js";
 import { renderMapSection } from "./map.js";
 import { renderSettingsSection, renderSiteManagementSection } from "./master-data.js";
 import { renderOperatorWorkspace } from "./operator.js";
+import { renderAlarmPipelineTableOnly } from "./operator-screen.js";
 
 type WorkspaceDescriptor = {
   id: WorkspaceId;
@@ -70,7 +71,7 @@ export function renderApp(): string {
   }
 
   if (state.activeWorkspace === "leitstelle" && state.leitstelleMode === "alarms") {
-    return `<main class="alarm-pipeline-empty-screen"></main>`;
+    return renderAlarmPipelineTableOnly();
   }
 
   // Das zweite Operatorfenster ist eine eigene, reduzierte Root-Ansicht.
@@ -197,7 +198,7 @@ function renderWorkspaceNavigation(
               ? `
                 <div class="workspace-nav-subroutes">
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline</a>
+                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}" target="leitstelle-alarm-pipeline">Alarm-Pipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>
@@ -246,7 +247,7 @@ function renderLeitstelleToolbar(): string {
         </button>
         <div class="workspace-subnav leitstelle-toolbar-nav">
           <a class="button-link secondary" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline</a>
+          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="leitstelle-alarm-pipeline">Alarm-Pipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>

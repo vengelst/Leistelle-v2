@@ -40,6 +40,7 @@ const themeStorageKey = "leitstelle.theme.mode";
 const kioskStorageKey = "leitstelle.ui.kiosk";
 const shellMenuPositionStorageKey = "leitstelle.ui.shell-menu-position";
 const falseAlarmCloseModeStorageKey = "leitstelle.alarm.false-close-mode";
+const alarmPipelineTableStorageKey = "leitstelle.alarm.pipeline-table";
 const alarmSoundEnabledStorageKey = "leitstelle.alarm.sound.enabled";
 const alarmSoundIncludeNormalPriorityStorageKey = "leitstelle.alarm.sound.include-normal";
 
@@ -57,6 +58,7 @@ initializeThemeMode();
 initializeKioskMode();
 initializeShellMenuPosition();
 initializeFalseAlarmCloseMode();
+initializeAlarmPipelineTableConfig();
 initializeAlarmSoundPreferences();
 
 const router = createWorkspaceRouter({
@@ -84,6 +86,7 @@ const uiHandlers = createUiHandlers({
   alarmSoundEnabledStorageKey,
   alarmSoundIncludeNormalPriorityStorageKey,
   falseAlarmCloseModeStorageKey,
+  alarmPipelineTableStorageKey,
   applyThemeMode,
   armAlarmSound: () => alarmSoundController.arm(),
   broadcastOperatorLayoutUpdate: () => operatorSelectionSync.broadcastLayoutUpdate(
@@ -362,6 +365,39 @@ function initializeFalseAlarmCloseMode(): void {
   const storedMode = window.localStorage.getItem(falseAlarmCloseModeStorageKey);
   if (storedMode === "instant" || storedMode === "confirm") {
     state.falseAlarmCloseMode = storedMode;
+  }
+}
+
+function initializeAlarmPipelineTableConfig(): void {
+  const storedConfig = window.localStorage.getItem(alarmPipelineTableStorageKey);
+  if (!storedConfig) {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(storedConfig) as Partial<typeof state.alarmPipelineTable>;
+    if (typeof parsed.panelWidthPercent === "number") {
+      state.alarmPipelineTable.panelWidthPercent = Math.max(35, Math.min(95, Math.round(parsed.panelWidthPercent)));
+    }
+    if (parsed.visibleColumns && typeof parsed.visibleColumns === "object") {
+      state.alarmPipelineTable.visibleColumns = {
+        ...state.alarmPipelineTable.visibleColumns,
+        ...parsed.visibleColumns
+      };
+      state.alarmPipelineTable.visibleColumns.action = true;
+    }
+    if (parsed.columnWidths && typeof parsed.columnWidths === "object") {
+      const nextWidths = { ...state.alarmPipelineTable.columnWidths };
+      for (const [column, width] of Object.entries(parsed.columnWidths)) {
+        if (typeof width !== "number") {
+          continue;
+        }
+        nextWidths[column as keyof typeof nextWidths] = Math.max(80, Math.min(420, Math.round(width)));
+      }
+      state.alarmPipelineTable.columnWidths = nextWidths;
+    }
+  } catch {
+    // Ignoriert defekte lokale Einstellungen und faellt auf Defaults zurueck.
   }
 }
 

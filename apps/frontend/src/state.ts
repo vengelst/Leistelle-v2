@@ -62,6 +62,29 @@ export type BusyStateMap = Record<string, string>;
 export type UserAdministrationView = "list" | "detail";
 export type AlarmSoundPermissionState = "unknown" | "ready" | "blocked" | "unsupported";
 export type FalseAlarmCloseMode = "instant" | "confirm";
+export type AlarmPipelineTableColumnKey =
+  | "position"
+  | "time"
+  | "site"
+  | "customer"
+  | "alarmType"
+  | "priority"
+  | "status"
+  | "assessment"
+  | "technical"
+  | "source"
+  | "mediaCount"
+  | "eventCount"
+  | "responseDueAt"
+  | "followUpAt"
+  | "assignment"
+  | "age"
+  | "action";
+export type AlarmPipelineTableConfig = {
+  panelWidthPercent: number;
+  visibleColumns: Record<AlarmPipelineTableColumnKey, boolean>;
+  columnWidths: Record<AlarmPipelineTableColumnKey, number>;
+};
 export type OperatorWindowRole = "primary" | "secondary";
 export type OperatorLayoutWidgetId = "queue" | "site" | "instructions" | "actions" | "documentation" | "media" | "plan" | "source";
 export type OperatorLayoutPresetId = "two-screen" | "single-screen";
@@ -141,6 +164,7 @@ export type FrontendState = {
   alarmSoundIncludeNormalPriority: boolean;
   alarmSoundPermissionState: AlarmSoundPermissionState;
   falseAlarmCloseMode: FalseAlarmCloseMode;
+  alarmPipelineTable: AlarmPipelineTableConfig;
   selectedSettingsSection: SettingsSection;
   userAdministrationView: UserAdministrationView;
   selectedAdministrationUserId?: string;
@@ -245,6 +269,47 @@ export const state: FrontendState = {
   alarmSoundIncludeNormalPriority: false,
   alarmSoundPermissionState: "unknown",
   falseAlarmCloseMode: "confirm",
+  alarmPipelineTable: {
+    panelWidthPercent: 58,
+    visibleColumns: {
+      position: true,
+      time: true,
+      site: true,
+      customer: true,
+      alarmType: true,
+      priority: false,
+      status: true,
+      assessment: false,
+      technical: false,
+      source: false,
+      mediaCount: false,
+      eventCount: false,
+      responseDueAt: false,
+      followUpAt: false,
+      assignment: true,
+      age: false,
+      action: true
+    },
+    columnWidths: {
+      position: 70,
+      time: 180,
+      site: 220,
+      customer: 220,
+      alarmType: 150,
+      priority: 120,
+      status: 160,
+      assessment: 160,
+      technical: 140,
+      source: 180,
+      mediaCount: 100,
+      eventCount: 90,
+      responseDueAt: 180,
+      followUpAt: 180,
+      assignment: 170,
+      age: 120,
+      action: 140
+    }
+  },
   selectedSettingsSection: "overview",
   userAdministrationView: "list",
   userAdministrationCreateMode: false,
@@ -325,6 +390,47 @@ export function resetSessionScopedState(): void {
   state.leitstelleNavigationCollapsed = false;
   state.shellMenuPosition = "left";
   state.falseAlarmCloseMode = "confirm";
+  state.alarmPipelineTable = {
+    panelWidthPercent: 58,
+    visibleColumns: {
+      position: true,
+      time: true,
+      site: true,
+      customer: true,
+      alarmType: true,
+      priority: false,
+      status: true,
+      assessment: false,
+      technical: false,
+      source: false,
+      mediaCount: false,
+      eventCount: false,
+      responseDueAt: false,
+      followUpAt: false,
+      assignment: true,
+      age: false,
+      action: true
+    },
+    columnWidths: {
+      position: 70,
+      time: 180,
+      site: 220,
+      customer: 220,
+      alarmType: 150,
+      priority: 120,
+      status: 160,
+      assessment: 160,
+      technical: 140,
+      source: 180,
+      mediaCount: 100,
+      eventCount: 90,
+      responseDueAt: 180,
+      followUpAt: 180,
+      assignment: 170,
+      age: 120,
+      action: 140
+    }
+  };
   state.selectedSettingsSection = "overview";
   state.userAdministrationView = "list";
   state.userAdministrationCreateMode = false;

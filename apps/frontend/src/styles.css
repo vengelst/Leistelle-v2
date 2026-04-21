@@ -459,6 +459,118 @@ h1 {
   min-height: 210px;
 }
 
+.operator-intake-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.alarm-pipeline-table-only {
+  display: grid;
+  grid-template-columns: minmax(420px, var(--alarm-pipeline-panel-width, 58%)) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  min-height: 100dvh;
+}
+
+.alarm-pipeline-table-panel {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.alarm-pipeline-table-controls details {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+}
+
+.alarm-pipeline-table-controls summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.alarm-pipeline-table-control-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.alarm-pipeline-table-control-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alarm-pipeline-table-control-item input {
+  width: auto;
+}
+
+.alarm-pipeline-table-spacer {
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  background: transparent;
+}
+
+.operator-intake-queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 820px;
+  table-layout: fixed;
+}
+
+.operator-intake-queue-table th,
+.operator-intake-queue-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operator-intake-queue-table th {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--panel-soft);
+}
+
+.alarm-table-th-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.alarm-table-col-resize-handle {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 14px;
+  height: calc(100% + 16px);
+  cursor: col-resize;
+  border-right: 2px solid rgba(155, 77, 47, 0.2);
+}
+
+.alarm-table-col-resize-handle:hover {
+  border-right-color: rgba(155, 77, 47, 0.7);
+}
+
+.operator-intake-queue-table tbody tr.is-selected {
+  background: var(--accent-soft);
+}
+
+.operator-intake-queue-table td:last-child {
+  white-space: nowrap;
+}
+
 .operator-intake-map .site-plan-workspace {
   min-height: 280px;
 }
@@ -566,6 +678,14 @@ h1 {
 }
 
 @media (max-width: 980px) {
+  .alarm-pipeline-table-only {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alarm-pipeline-table-control-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .operator-intake-layout,
   .operator-screen-layout,
   .operator-layout-stack,

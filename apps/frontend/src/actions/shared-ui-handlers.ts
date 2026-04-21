@@ -17,10 +17,14 @@ import {
 } from "../operator-layout.js";
 import { state } from "../state.js";
 
+const alarmPipelineWindowTarget = "leitstelle-alarm-pipeline";
+let alarmPipelineWindowRef: Window | null = null;
+
 type SharedUiHandlerDeps = {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
   falseAlarmCloseModeStorageKey: string;
+  alarmPipelineTableStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
@@ -44,6 +48,9 @@ export function createSharedUiHandlers(
   | "toggleKiosk"
   | "setShellMenuPosition"
   | "setFalseAlarmCloseMode"
+  | "setAlarmPipelineTableColumnVisible"
+  | "setAlarmPipelineTableColumnWidth"
+  | "setAlarmPipelineTablePanelWidth"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"
@@ -75,8 +82,34 @@ export function createSharedUiHandlers(
     navigateLeitstelleMode(mode: string): void {
       if (mode === "alarms") {
         const targetUrl = deps.router.hrefForLeitstelleMode("alarms");
-        const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
+        if (alarmPipelineWindowRef && !alarmPipelineWindowRef.closed) {
+          try {
+            if (alarmPipelineWindowRef.location.href === targetUrl) {
+              alarmPipelineWindowRef.location.reload();
+            } else {
+              alarmPipelineWindowRef.location.href = targetUrl;
+            }
+            alarmPipelineWindowRef.focus();
+            return;
+          } catch {
+            alarmPipelineWindowRef = null;
+          }
+        }
+
+        const popup = window.open(targetUrl, alarmPipelineWindowTarget);
         if (popup) {
+          alarmPipelineWindowRef = popup;
+          try {
+            if (popup.location.href === targetUrl) {
+              popup.location.reload();
+            } else {
+              popup.location.href = targetUrl;
+            }
+          } catch {
+            // Fallback: bei Browserrestriktionen dennoch auf Ziel-URL navigieren.
+            popup.location.href = targetUrl;
+          }
+          popup.focus();
           return;
         }
       }
@@ -106,6 +139,38 @@ export function createSharedUiHandlers(
     setFalseAlarmCloseMode(mode: string): void {
       state.falseAlarmCloseMode = mode === "instant" ? "instant" : "confirm";
       window.localStorage.setItem(deps.falseAlarmCloseModeStorageKey, state.falseAlarmCloseMode);
+      deps.render();
+    },
+    setAlarmPipelineTableColumnVisible(column: string, visible: boolean): void {
+      if (!(column in state.alarmPipelineTable.visibleColumns)) {
+        return;
+      }
+      if (column === "action") {
+        return;
+      }
+      state.alarmPipelineTable.visibleColumns = {
+        ...state.alarmPipelineTable.visibleColumns,
+        [column]: visible
+      };
+      persistAlarmPipelineTableConfig();
+      deps.render();
+    },
+    setAlarmPipelineTableColumnWidth(column: string, width: number): void {
+      if (!(column in state.alarmPipelineTable.columnWidths)) {
+        return;
+      }
+      const normalizedWidth = Math.max(80, Math.min(420, Math.round(width)));
+      state.alarmPipelineTable.columnWidths = {
+        ...state.alarmPipelineTable.columnWidths,
+        [column]: normalizedWidth
+      };
+      persistAlarmPipelineTableConfig();
+      deps.render();
+    },
+    setAlarmPipelineTablePanelWidth(width: number): void {
+      const normalizedWidth = Math.max(35, Math.min(95, Math.round(width)));
+      state.alarmPipelineTable.panelWidthPercent = normalizedWidth;
+      persistAlarmPipelineTableConfig();
       deps.render();
     },
     openSecondaryOperatorWindow(): void {
@@ -234,5 +299,9 @@ export function createSharedUiHandlers(
       layout: state.operatorLayout,
       profiles: state.operatorLayoutProfiles
     });
+  }
+
+  function persistAlarmPipelineTableConfig(): void {
+    window.localStorage.setItem(deps.alarmPipelineTableStorageKey, JSON.stringify(state.alarmPipelineTable));
   }
 }

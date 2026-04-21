@@ -19,6 +19,9 @@ export type AppHandlers = {
   toggleKiosk: () => void;
   setShellMenuPosition: (position: string) => void;
   setFalseAlarmCloseMode: (mode: string) => void;
+  setAlarmPipelineTableColumnVisible: (column: string, visible: boolean) => void;
+  setAlarmPipelineTableColumnWidth: (column: string, width: number) => void;
+  setAlarmPipelineTablePanelWidth: (width: number) => void;
   openSecondaryOperatorWindow: () => void;
   toggleOperatorLayoutEditor: () => void;
   applyOperatorLayoutPreset: (presetId: string) => void;
@@ -517,6 +520,20 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLSelectElement>("#false-alarm-close-mode-select")?.addEventListener("change", (event) => {
     handlers.setFalseAlarmCloseMode((event.currentTarget as HTMLSelectElement).value);
   });
+  for (const input of Array.from(document.querySelectorAll<HTMLInputElement>("[data-alarm-table-column-visible]"))) {
+    input.addEventListener("change", () => {
+      handlers.setAlarmPipelineTableColumnVisible(input.dataset.columnKey ?? "", input.checked);
+    });
+  }
+  for (const input of Array.from(document.querySelectorAll<HTMLInputElement>("[data-alarm-table-column-width]"))) {
+    input.addEventListener("input", () => {
+      handlers.setAlarmPipelineTableColumnWidth(input.dataset.columnKey ?? "", Number(input.value));
+    });
+  }
+  document.querySelector<HTMLInputElement>("[data-alarm-table-panel-width]")?.addEventListener("input", (event) => {
+    handlers.setAlarmPipelineTablePanelWidth(Number((event.currentTarget as HTMLInputElement).value));
+  });
+  bindAlarmTableColumnResizeHandles(handlers);
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());
@@ -803,6 +820,40 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLFormElement>("#alarm-source-mapping-form")?.addEventListener("submit", handlers.handleAlarmSourceMappingSubmit);
   document.querySelector<HTMLFormElement>("#plan-form")?.addEventListener("submit", handlers.handlePlanSubmit);
   document.querySelector<HTMLFormElement>("#workflow-profile-form")?.addEventListener("submit", handlers.handleWorkflowProfileSubmit);
+}
+
+function bindAlarmTableColumnResizeHandles(
+  handlers: Pick<AppHandlers, "setAlarmPipelineTableColumnWidth">
+): void {
+  for (const handle of Array.from(document.querySelectorAll<HTMLElement>("[data-alarm-table-resize-handle]"))) {
+    handle.addEventListener("mousedown", (event: MouseEvent) => {
+      event.preventDefault();
+
+      const columnKey = handle.dataset.columnKey ?? "";
+      if (!columnKey) {
+        return;
+      }
+
+      const headerCell = handle.closest("th");
+      const startX = event.clientX;
+      const startWidth = headerCell
+        ? Math.round(headerCell.getBoundingClientRect().width)
+        : 140;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const delta = moveEvent.clientX - startX;
+        handlers.setAlarmPipelineTableColumnWidth(columnKey, startWidth + delta);
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+  }
 }
 
 function bindOperatorLayoutDragAndDrop(

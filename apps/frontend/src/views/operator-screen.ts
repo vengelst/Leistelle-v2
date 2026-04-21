@@ -5,7 +5,7 @@
  * Hauptbildschirm mit Fall- und Standortkontext sowie Sekundaerbildschirm mit
  * FIFO-Pipeline und Medienvorschau.
  */
-import type { OperatorLayoutWidgetId, OperatorWindowRole } from "../state.js";
+import type { AlarmPipelineTableColumnKey, OperatorLayoutWidgetId, OperatorWindowRole } from "../state.js";
 
 import { state } from "../state.js";
 import { escapeHtml, formatDateTimeLocalValue, formatTimestamp } from "../utils.js";
@@ -46,17 +46,167 @@ import {
 } from "./common.js";
 import { renderAlarmMediaSection } from "./alarm-media.js";
 
+type AlarmTableColumnDefinition = {
+  key: AlarmPipelineTableColumnKey;
+  label: string;
+};
+
+const alarmTableColumns: AlarmTableColumnDefinition[] = [
+  { key: "position", label: "Pos" },
+  { key: "time", label: "Zeit" },
+  { key: "site", label: "Standort" },
+  { key: "customer", label: "Kunde" },
+  { key: "alarmType", label: "Alarmtyp" },
+  { key: "priority", label: "Prioritaet" },
+  { key: "status", label: "Status" },
+  { key: "assessment", label: "Bewertung" },
+  { key: "technical", label: "Technik" },
+  { key: "source", label: "Quelle" },
+  { key: "mediaCount", label: "Medien" },
+  { key: "eventCount", label: "Events" },
+  { key: "responseDueAt", label: "Reaktionsfrist" },
+  { key: "followUpAt", label: "Wiedervorlage" },
+  { key: "assignment", label: "Bearbeitung" },
+  { key: "age", label: "Alarmalter" },
+  { key: "action", label: "Aktion" }
+];
+
 export function renderOperatorScreen(): string {
   if (!state.session) {
     return renderEmptyState("Nach dem Login steht der dedizierte Alarmannahme-Screen fuer die Leitstelle bereit.");
   }
 
   const role = state.operatorWindowRole;
-  if (state.leitstelleMode === "intake") {
+  if (state.leitstelleMode === "intake" || state.leitstelleMode === "alarms") {
     return renderAlarmIntakeScreen(role);
   }
 
   return role === "secondary" ? renderSecondaryOperatorScreen() : renderPrimaryOperatorScreen();
+}
+
+export function renderAlarmPipelineTableOnly(): string {
+  const alarms = applyClientSidePipelineFilter(state.openAlarms)
+    .slice()
+    .sort((left, right) => {
+      const receivedDifference = new Date(left.receivedAt).getTime() - new Date(right.receivedAt).getTime();
+      if (receivedDifference !== 0) {
+        return receivedDifference;
+      }
+
+      return new Date(left.lastEventAt).getTime() - new Date(right.lastEventAt).getTime();
+    });
+  const currentUserId = state.session?.user.id;
+  const tableConfig = state.alarmPipelineTable;
+  const visibleColumns = alarmTableColumns.filter((column) => tableConfig.visibleColumns[column.key]);
+  const renderCell = (columnKey: AlarmPipelineTableColumnKey, alarm: (typeof alarms)[number], index: number, isSelected: boolean, assignmentLabel: string) => {
+    switch (columnKey) {
+      case "position":
+        return `${index + 1}`;
+      case "time":
+        return formatTimestamp(alarm.receivedAt);
+      case "site":
+        return escapeHtml(alarm.siteName);
+      case "customer":
+        return escapeHtml(alarm.customerName);
+      case "alarmType":
+        return formatAlarmTypeLabel(alarm.alarmType);
+      case "priority":
+        return renderPriorityPill(alarm.priority);
+      case "status":
+        return formatAlarmLifecycleLabel(alarm.lifecycleStatus);
+      case "assessment":
+        return formatAlarmAssessmentLabel(alarm.assessmentStatus);
+      case "technical":
+        return formatAlarmTechnicalStateLabel(alarm.technicalState);
+      case "source":
+        return escapeHtml(alarm.primaryDeviceName ?? "-");
+      case "mediaCount":
+        return String(alarm.mediaCount);
+      case "eventCount":
+        return String(alarm.eventCount);
+      case "responseDueAt":
+        return formatResponseDueAtValue(alarm.responseDueAt);
+      case "followUpAt":
+        return formatFollowUpValue(alarm.followUpAt);
+      case "assignment":
+        return escapeHtml(assignmentLabel);
+      case "age":
+        return formatRelativeAge(alarm.receivedAt);
+      case "action":
+        return `<button type="button" class="secondary detail-button operator-entry-button" data-operator-entry-button="true" data-alarm-case-id="${alarm.id}" aria-current="${isSelected ? "true" : "false"}">${isSelected ? "Geoeffnet" : "Oeffnen"}</button>`;
+      default:
+        return "";
+    }
+  };
+
+  return `
+    <main class="alarm-pipeline-table-only" data-operator-keyboard-root="true" style="--alarm-pipeline-panel-width: ${tableConfig.panelWidthPercent}%;">
+      <section class="alarm-pipeline-table-panel">
+        <article class="subcard stack compact alarm-pipeline-table-controls">
+          <details open>
+            <summary>Spalten</summary>
+            <div class="alarm-pipeline-table-control-grid">
+              ${alarmTableColumns.map((column) => `
+                <label class="alarm-pipeline-table-control-item">
+                  <input
+                    type="checkbox"
+                    data-alarm-table-column-visible
+                    data-column-key="${column.key}"
+                    ${tableConfig.visibleColumns[column.key] ? "checked" : ""}
+                    ${column.key === "action" ? "disabled" : ""}
+                  />
+                  <span>${column.label}</span>
+                </label>
+              `).join("")}
+            </div>
+          </details>
+        </article>
+        <div class="operator-intake-table-wrap">
+        <table class="operator-intake-queue-table">
+          <colgroup>
+            ${visibleColumns.map((column) => `<col style="width:${tableConfig.columnWidths[column.key]}px" />`).join("")}
+          </colgroup>
+          <thead>
+            <tr>
+              ${visibleColumns.map((column) => `
+                <th>
+                  <div class="alarm-table-th-content">
+                    <span>${column.label}</span>
+                    <span class="alarm-table-col-resize-handle" data-alarm-table-resize-handle data-column-key="${column.key}" aria-hidden="true"></span>
+                  </div>
+                </th>
+              `).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${alarms.length > 0
+              ? alarms.map((alarm, index) => {
+                const isSelected = state.selectedAlarmCaseId === alarm.id;
+                const isMine = alarm.activeAssignment?.userId === currentUserId;
+                const isTaken = Boolean(alarm.activeAssignment && !isMine);
+                const assignmentLabel = isMine
+                  ? "mein Alarm"
+                  : isTaken
+                    ? "anderer Bearbeiter"
+                    : "frei";
+                return `
+                  <tr class="${isSelected ? "is-selected" : ""}">
+                    ${visibleColumns.map((column) => `<td>${renderCell(column.key, alarm, index, isSelected, assignmentLabel)}</td>`).join("")}
+                  </tr>
+                `;
+              }).join("")
+              : `
+                <tr>
+                  <td colspan="${Math.max(1, visibleColumns.length)}">Keine offenen Alarme.</td>
+                </tr>
+              `}
+          </tbody>
+        </table>
+      </div>
+      </section>
+      <section class="alarm-pipeline-table-spacer" aria-hidden="true"></section>
+    </main>
+  `;
 }
 
 function renderPrimaryOperatorScreen(): string {
@@ -332,6 +482,56 @@ function renderOperatorQueue(): string {
   }
 
   const currentUserId = state.session?.user.id;
+  if (state.leitstelleMode === "intake" || state.leitstelleMode === "alarms") {
+    return `
+      <section class="stack section">
+        ${renderPipelineAssignmentQuickFilters()}
+        <div class="operator-intake-table-wrap">
+          <table class="operator-intake-queue-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Zeit</th>
+                <th>Standort</th>
+                <th>Kunde</th>
+                <th>Alarmtyp</th>
+                <th>Status</th>
+                <th>Bearbeitung</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredAlarms.map((alarm, index) => {
+                const isSelected = state.selectedAlarmCaseId === alarm.id;
+                const isMine = alarm.activeAssignment?.userId === currentUserId;
+                const isTaken = Boolean(alarm.activeAssignment && !isMine);
+                const assignmentLabel = isMine
+                  ? "mein Alarm"
+                  : isTaken
+                    ? "anderer Bearbeiter"
+                    : "frei";
+                return `
+                  <tr class="${isSelected ? "is-selected" : ""}">
+                    <td>${index + 1}</td>
+                    <td>${formatTimestamp(alarm.receivedAt)}</td>
+                    <td>${escapeHtml(alarm.siteName)}</td>
+                    <td>${escapeHtml(alarm.customerName)}</td>
+                    <td>${formatAlarmTypeLabel(alarm.alarmType)}</td>
+                    <td>${formatAlarmLifecycleLabel(alarm.lifecycleStatus)}</td>
+                    <td>${escapeHtml(assignmentLabel)}</td>
+                    <td>
+                      <button type="button" class="secondary detail-button operator-entry-button" data-operator-entry-button="true" data-alarm-case-id="${alarm.id}" aria-current="${isSelected ? "true" : "false"}">${isSelected ? "Geoeffnet" : "Oeffnen"}</button>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }
+
   return `
     <section class="stack section">
       ${renderPipelineAssignmentQuickFilters()}

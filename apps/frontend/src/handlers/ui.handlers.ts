@@ -18,6 +18,7 @@ type UiHandlerDeps = HandlerRuntime & {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
   falseAlarmCloseModeStorageKey: string;
+  alarmPipelineTableStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
@@ -41,6 +42,9 @@ export function createUiHandlers(
   | "toggleKiosk"
   | "setShellMenuPosition"
   | "setFalseAlarmCloseMode"
+  | "setAlarmPipelineTableColumnVisible"
+  | "setAlarmPipelineTableColumnWidth"
+  | "setAlarmPipelineTablePanelWidth"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"
