@@ -193,9 +193,10 @@ function renderWorkspaceNavigation(
               ? `
                 <div class="workspace-nav-subroutes">
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}">Alarm-Pipeline</a>
+                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
+                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("wallboard")}">Wallboard</a>
                 </div>
               `
@@ -212,6 +213,7 @@ function renderLeitstelleToolbar(): string {
   const soundPriorityLabel = state.alarmSoundIncludeNormalPriority ? "ab normal" : "kritisch/hoch";
   const soundPermissionLabel = formatAlarmSoundPermissionLabel();
   const isOperatorMode = state.leitstelleMode === "operator";
+  const isIntakeMode = state.leitstelleMode === "intake";
 
   return `
     <section class="workspace-main-toolbar leitstelle-toolbar">
@@ -224,11 +226,11 @@ function renderLeitstelleToolbar(): string {
         ${renderPill(soundStatusLabel)}
         ${renderPill(`Signal ${soundPriorityLabel}`)}
         ${state.alarmSoundEnabled ? renderPill(`Audio ${soundPermissionLabel}`) : ""}
-        ${isOperatorMode ? renderPill("2-Screen bereit") : ""}
+        ${isOperatorMode || isIntakeMode ? renderPill("2-Screen bereit") : ""}
         <button type="button" id="leitstelle-nav-toggle-button" class="secondary">
           ${state.leitstelleNavigationCollapsed ? "Navigation einblenden" : "Navigation einklappen"}
         </button>
-        ${isOperatorMode ? `<button type="button" id="open-secondary-operator-window-button" class="secondary">2. Bildschirm oeffnen</button>` : ""}
+        ${isOperatorMode || isIntakeMode ? `<button type="button" id="open-secondary-operator-window-button" class="secondary">2. Bildschirm oeffnen</button>` : ""}
         <button type="button" id="alarm-sound-toggle-button" class="secondary">
           ${state.alarmSoundEnabled ? "Alarmton stummschalten" : "Alarmton aktivieren"}
         </button>
@@ -240,9 +242,10 @@ function renderLeitstelleToolbar(): string {
         </button>
         <div class="workspace-subnav leitstelle-toolbar-nav">
           <a class="button-link secondary" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}">Alarm-Pipeline</a>
+          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
+          <a class="button-link secondary" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("wallboard")}">Wallboard</a>
         </div>
       </div>
@@ -293,10 +296,10 @@ function renderSecondaryOperatorWindow(): string {
           <div class="hero-status">
             ${renderPill("Screen 2")}
             ${renderPill(state.session!.user.displayName)}
-            ${renderPill("FIFO + Medien + Karte")}
+            ${renderPill("Alarm-Eingang + Medien + Karte")}
           </div>
         </div>
-        <p class="muted">Dieses Fenster ist fuer Warteschlange, Medien und Vor-Ort-Karte gedacht. Standortdaten, Ablauf und Dokumentation bleiben im Hauptfenster.</p>
+        <p class="muted">Dieses Fenster ist fuer den Alarm-Eingangsscreen auf Monitor 2 gedacht. Die Ansicht kann auf Medien, Zeitdaten und Objektplan fokussiert werden.</p>
       </header>
       <section class="operator-window-body">
         ${renderOperatorWorkspace()}

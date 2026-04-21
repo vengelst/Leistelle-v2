@@ -17,6 +17,7 @@ import { scrollToRegion } from "../utils.js";
 type UiHandlerDeps = HandlerRuntime & {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
+  falseAlarmCloseModeStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
@@ -39,6 +40,7 @@ export function createUiHandlers(
   | "toggleTheme"
   | "toggleKiosk"
   | "setShellMenuPosition"
+  | "setFalseAlarmCloseMode"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"

@@ -18,7 +18,7 @@ export const defaultWorkspaceNavigation: WorkspaceNavigation = {
 };
 
 export const workspaceIds: WorkspaceId[] = ["dashboard", "leitstelle", "map", "sites", "archive-reporting", "settings", "administration"];
-export const leitstelleModes: LeitstelleMode[] = ["overview", "alarms", "disturbances", "operator", "wallboard"];
+export const leitstelleModes: LeitstelleMode[] = ["overview", "alarms", "disturbances", "operator", "intake", "wallboard"];
 
 const workspaceByRegion: Record<UiShellDescriptor["regions"][number]["id"], WorkspaceId> = {
   authentication: "settings",

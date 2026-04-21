@@ -39,8 +39,16 @@ export function renderOperatorWorkspace(): string {
     return renderOperatorScreen();
   }
 
+  if (mode === "intake") {
+    return renderOperatorScreen();
+  }
+
   if (mode === "wallboard") {
     return renderWallboardScreen();
+  }
+
+  if (mode === "alarms") {
+    return `<section class="operator-workspace operator-workspace-empty" data-operator-keyboard-root="true"></section>`;
   }
 
   return `
@@ -55,12 +63,14 @@ export function renderOperatorWorkspace(): string {
             ${renderModeButton("alarms", "Alarm-Pipeline", mode)}
             ${renderModeButton("disturbances", "Stoerungspipeline", mode)}
             ${renderModeButton("operator", "Alarmannahme-Screen", mode)}
+            ${renderModeButton("intake", "Alarm-Eingangsscreen", mode)}
             ${renderModeButton("wallboard", "Wallboard", mode)}
           </div>
           <div class="actions">
             <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="_blank" rel="noopener noreferrer">Alarm-Pipeline im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("disturbances")}" target="_blank" rel="noopener noreferrer">Stoerungen im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("operator")}" target="_blank" rel="noopener noreferrer">Alarmannahme im Tab</a>
+            <a class="button-link secondary" href="${hrefForLeitstelleMode("intake")}" target="_blank" rel="noopener noreferrer">Alarm-Eingang im Tab</a>
             <a class="button-link secondary" href="${hrefForLeitstelleMode("wallboard")}" target="_blank" rel="noopener noreferrer">Wallboard im Tab</a>
           </div>
         </article>
@@ -85,18 +95,16 @@ export function renderOperatorWorkspace(): string {
             </div>
           </article>
         ` : ""}
-        ${mode !== "alarms" ? `
-          <article class="subcard stack compact operator-lane">
-            ${renderSectionHeader("Stoerungspipeline", {
-              pills: [renderPill(`${state.openDisturbances.length} offen`), ...(monitoringPipelineBusy ? [renderPill("laedt")] : [])]
-            })}
-            <p class="muted">Technische Stoerungen bleiben separat erreichbar, aber im selben Leitstellen-Arbeitsmodus.</p>
-            ${renderMonitoringFilterForm()}
-            <div class="operator-list-panel" data-ui-preserve-scroll="operator-monitoring-list">
-              ${renderMonitoringPipelineList()}
-            </div>
-          </article>
-        ` : ""}
+        <article class="subcard stack compact operator-lane">
+          ${renderSectionHeader("Stoerungspipeline", {
+            pills: [renderPill(`${state.openDisturbances.length} offen`), ...(monitoringPipelineBusy ? [renderPill("laedt")] : [])]
+          })}
+          <p class="muted">Technische Stoerungen bleiben separat erreichbar, aber im selben Leitstellen-Arbeitsmodus.</p>
+          ${renderMonitoringFilterForm()}
+          <div class="operator-list-panel" data-ui-preserve-scroll="operator-monitoring-list">
+            ${renderMonitoringPipelineList()}
+          </div>
+        </article>
       </aside>
       <section class="operator-detail">
         <article
@@ -149,6 +157,8 @@ function modeLabel(mode: LeitstelleMode): string {
       return "Stoerungspipeline";
     case "operator":
       return "Alarmannahme-Screen";
+    case "intake":
+      return "Alarm-Eingangsscreen";
     case "wallboard":
       return "Wallboard";
     default:

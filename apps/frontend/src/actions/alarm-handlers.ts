@@ -59,6 +59,7 @@ export function createAlarmHandlers(
   | "handleDetailRelease"
   | "handleQuickConfirm"
   | "handleQuickFalsePositive"
+  | "handleIntakeFalseAlarm"
   | "handleArchive"
   | "handleAssessmentSubmit"
   | "handleFollowUpSubmit"
@@ -157,6 +158,44 @@ export function createAlarmHandlers(
       return `/api/v1/alarm-cases/${detail.alarmCase.id}/media/${mediaId}/access?mode=${encodeURIComponent(mode)}`;
     }
     return `/api/v1/alarm-media/${mediaId}/access?mode=${encodeURIComponent(mode)}`;
+  }
+
+  function selectNextOpenAlarmCaseId(): string | undefined {
+    return state.openAlarms
+      .slice()
+      .sort((left, right) => {
+        const receivedDiff = new Date(left.receivedAt).getTime() - new Date(right.receivedAt).getTime();
+        if (receivedDiff !== 0) {
+          return receivedDiff;
+        }
+        return new Date(left.lastEventAt).getTime() - new Date(right.lastEventAt).getTime();
+      })[0]?.id;
+  }
+
+  async function setFalsePositiveAndClose(alarmCaseId: string): Promise<void> {
+    const reasonId = state.catalogs?.falsePositiveReasons[0]?.id;
+    const closureReasonId = state.catalogs?.closureReasons[0]?.id;
+    if (!reasonId) {
+      throw new Error("Kein Fehlalarmgrund verfuegbar.");
+    }
+    if (!closureReasonId) {
+      throw new Error("Kein Abschlussgrund verfuegbar.");
+    }
+
+    await apiRequest(`/api/v1/alarm-cases/${alarmCaseId}/assessment`, {
+      method: "POST",
+      body: JSON.stringify({
+        assessmentStatus: "false_positive",
+        falsePositiveReasonIds: [reasonId]
+      })
+    });
+    await apiRequest(`/api/v1/alarm-cases/${alarmCaseId}/close`, {
+      method: "POST",
+      body: JSON.stringify({
+        closureReasonId,
+        comment: "Alarm wurde im Eingangsscreen als Fehlalarm geschlossen."
+      })
+    });
   }
 
   function retainSelectedAlarmMediaPreviewState(detail: AlarmCaseDetail | null): void {
@@ -749,6 +788,38 @@ export function createAlarmHandlers(
         deps.setFailure(error instanceof Error ? error.message : "Bewertung konnte nicht gesetzt werden.");
       } finally {
         deps.setBusyState("alarm-assessment", null);
+      }
+    },
+    async handleIntakeFalseAlarm(alarmCaseId: string): Promise<void> {
+      if (!alarmCaseId) {
+        return;
+      }
+      if (state.falseAlarmCloseMode === "confirm" && !window.confirm("Alarm als Fehlalarm setzen, schliessen und den naechsten Alarm oeffnen?")) {
+        return;
+      }
+      deps.setBusyState("alarm-intake-false-positive", "Fehlalarm wird geschlossen");
+      try {
+        await deps.runRenderBatch(async () => {
+          await setFalsePositiveAndClose(alarmCaseId);
+          await fetchOpenAlarms(null);
+          const nextAlarmCaseId = selectNextOpenAlarmCaseId();
+          if (nextAlarmCaseId) {
+            await handleDetail(nextAlarmCaseId);
+            deps.setSuccess("Als Fehlalarm geschlossen. Naechster Alarm geoeffnet.");
+            return;
+          }
+
+          state.selectedAlarmDetail = null;
+          state.selectedAlarmReport = null;
+          delete state.selectedAlarmCaseId;
+          state.selectedAlarmMediaPreviews = {};
+          state.selectedAlarmMediaPreviewErrors = {};
+          deps.setSuccess("Als Fehlalarm geschlossen. Keine weiteren offenen Alarme.");
+        });
+      } catch (error) {
+        deps.setFailure(error instanceof Error ? error.message : "Fehlalarm konnte nicht geschlossen werden.");
+      } finally {
+        deps.setBusyState("alarm-intake-false-positive", null);
       }
     },
     async handleActionSubmit(event: SubmitEvent): Promise<void> {

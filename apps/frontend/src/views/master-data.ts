@@ -1028,6 +1028,11 @@ function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEdit
           <span>Position Hauptmenue</span>
           <select id="shell-menu-position-select" name="shellMenuPosition">${renderOptions(["left", "top"], state.shellMenuPosition)}</select>
         </label>
+        <label class="field">
+          <span>Fehlalarm-Klickverhalten</span>
+          <select id="false-alarm-close-mode-select" name="falseAlarmCloseMode">${renderOptions(["confirm", "instant"], state.falseAlarmCloseMode)}</select>
+        </label>
+        <p class="muted">Gilt fuer den Alarm-Eingangsscreen: Klick auf "Fehlalarm setzen und schliessen" entweder mit Rueckfrage oder direkt.</p>
       </article>
       ${canEditSettings
         ? `

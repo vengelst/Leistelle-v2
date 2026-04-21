@@ -18,6 +18,7 @@ export type AppHandlers = {
   toggleTheme: () => void;
   toggleKiosk: () => void;
   setShellMenuPosition: (position: string) => void;
+  setFalseAlarmCloseMode: (mode: string) => void;
   openSecondaryOperatorWindow: () => void;
   toggleOperatorLayoutEditor: () => void;
   applyOperatorLayoutPreset: (presetId: string) => void;
@@ -82,6 +83,7 @@ export type AppHandlers = {
   handleMonitoringServiceCaseSubmit: (event: SubmitEvent) => Promise<void>;
   handleQuickConfirm: () => Promise<void>;
   handleQuickFalsePositive: () => Promise<void>;
+  handleIntakeFalseAlarm: (alarmCaseId: string) => Promise<void>;
   handleArchive: () => Promise<void>;
   handleAssessmentSubmit: (event: SubmitEvent) => Promise<void>;
   handleFollowUpSubmit: (event: SubmitEvent) => Promise<void>;
@@ -512,6 +514,9 @@ export function bindAppEvents(handlers: AppHandlers): void {
   document.querySelector<HTMLSelectElement>("#shell-menu-position-select")?.addEventListener("change", (event) => {
     handlers.setShellMenuPosition((event.currentTarget as HTMLSelectElement).value);
   });
+  document.querySelector<HTMLSelectElement>("#false-alarm-close-mode-select")?.addEventListener("change", (event) => {
+    handlers.setFalseAlarmCloseMode((event.currentTarget as HTMLSelectElement).value);
+  });
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());
@@ -612,6 +617,12 @@ export function bindAppEvents(handlers: AppHandlers): void {
     setPendingOperatorFocusRequest({ zone: "actions" });
     void handlers.handleQuickFalsePositive();
   });
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".intake-false-alarm-button"))) {
+    button.addEventListener("click", () => {
+      setPendingOperatorFocusRequest({ zone: "actions" });
+      void handlers.handleIntakeFalseAlarm(button.dataset.alarmCaseId ?? "");
+    });
+  }
   document.querySelector<HTMLButtonElement>("#archive-button")?.addEventListener("click", () => {
     setPendingOperatorFocusRequest({ zone: "actions" });
     void handlers.handleArchive();

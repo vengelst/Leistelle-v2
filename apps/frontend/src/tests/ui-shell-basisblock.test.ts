@@ -99,7 +99,7 @@ test("alarm detail renders follow-up controls and active status in the existing 
   resetSessionScopedState();
   state.session = createSession(["operator"]);
   state.activeWorkspace = "leitstelle";
-  state.leitstelleMode = "alarms";
+  state.leitstelleMode = "overview";
   state.selectedAlarmDetail = {
     alarmCase: {
       id: "alarm-1",
@@ -145,7 +145,7 @@ test("alarm detail renders follow-up controls and active status in the existing 
   assert.ok(html.includes("Wiedervorlage entfernen"));
 });
 
-test("alarm workspace renders quick assignment filters and display name based assignment status", () => {
+test("alarm pipeline mode renders an empty screen only", () => {
   resetSessionScopedState();
   state.session = createSession(["operator"]);
   state.activeWorkspace = "leitstelle";
@@ -222,9 +222,11 @@ test("alarm workspace renders quick assignment filters and display name based as
 
   const html = renderApp();
 
-  assert.ok(html.includes('data-pipeline-assignment-scope="mine"'));
-  assert.ok(html.includes("mein Fall"));
-  assert.ok(html.includes("Admin seit"));
+  assert.ok(html.includes("operator-workspace-empty"));
+  assert.ok(!html.includes('data-pipeline-assignment-scope="mine"'));
+  assert.ok(!html.includes('id="pipeline-filter-form"'));
+  assert.ok(!html.includes('id="follow-up-form"'));
+  assert.ok(!html.includes("mein Fall"));
 });
 
 test("settings navigation entry stays hidden for non administrative roles", () => {
@@ -298,6 +300,7 @@ test("kiosk toggle stores shell preference without second app", () => {
     const handlers = createSharedUiHandlers({
       alarmSoundEnabledStorageKey: "leitstelle.alarm.sound.enabled",
       alarmSoundIncludeNormalPriorityStorageKey: "leitstelle.alarm.sound.include-normal",
+      falseAlarmCloseModeStorageKey: "leitstelle.alarm.false-close-mode",
       applyThemeMode: () => undefined,
       armAlarmSound: async () => undefined,
       broadcastOperatorLayoutUpdate: () => undefined,

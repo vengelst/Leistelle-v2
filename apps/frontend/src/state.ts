@@ -55,12 +55,13 @@ export type SiteManagementSection = "overview" | "master-data" | "technology" | 
 export type SiteManagementView = "list" | "detail";
 export type SettingsSection = "overview" | "general" | "users" | "roles";
 export type WorkspaceId = "dashboard" | "leitstelle" | "map" | "sites" | "archive-reporting" | "settings" | "administration";
-export type LeitstelleMode = "overview" | "alarms" | "disturbances" | "operator" | "wallboard";
+export type LeitstelleMode = "overview" | "alarms" | "disturbances" | "operator" | "intake" | "wallboard";
 export type ThemeMode = "light" | "dark";
 export type ShellMenuPosition = "left" | "top";
 export type BusyStateMap = Record<string, string>;
 export type UserAdministrationView = "list" | "detail";
 export type AlarmSoundPermissionState = "unknown" | "ready" | "blocked" | "unsupported";
+export type FalseAlarmCloseMode = "instant" | "confirm";
 export type OperatorWindowRole = "primary" | "secondary";
 export type OperatorLayoutWidgetId = "queue" | "site" | "instructions" | "actions" | "documentation" | "media" | "plan" | "source";
 export type OperatorLayoutPresetId = "two-screen" | "single-screen";
@@ -139,6 +140,7 @@ export type FrontendState = {
   alarmSoundEnabled: boolean;
   alarmSoundIncludeNormalPriority: boolean;
   alarmSoundPermissionState: AlarmSoundPermissionState;
+  falseAlarmCloseMode: FalseAlarmCloseMode;
   selectedSettingsSection: SettingsSection;
   userAdministrationView: UserAdministrationView;
   selectedAdministrationUserId?: string;
@@ -242,6 +244,7 @@ export const state: FrontendState = {
   alarmSoundEnabled: true,
   alarmSoundIncludeNormalPriority: false,
   alarmSoundPermissionState: "unknown",
+  falseAlarmCloseMode: "confirm",
   selectedSettingsSection: "overview",
   userAdministrationView: "list",
   userAdministrationCreateMode: false,
@@ -321,6 +324,7 @@ export function resetSessionScopedState(): void {
   state.operatorLayoutEditorOpen = false;
   state.leitstelleNavigationCollapsed = false;
   state.shellMenuPosition = "left";
+  state.falseAlarmCloseMode = "confirm";
   state.selectedSettingsSection = "overview";
   state.userAdministrationView = "list";
   state.userAdministrationCreateMode = false;

@@ -20,6 +20,7 @@ import { state } from "../state.js";
 type SharedUiHandlerDeps = {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
+  falseAlarmCloseModeStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
@@ -42,6 +43,7 @@ export function createSharedUiHandlers(
   | "toggleTheme"
   | "toggleKiosk"
   | "setShellMenuPosition"
+  | "setFalseAlarmCloseMode"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"
@@ -71,6 +73,13 @@ export function createSharedUiHandlers(
       deps.render();
     },
     navigateLeitstelleMode(mode: string): void {
+      if (mode === "alarms") {
+        const targetUrl = deps.router.hrefForLeitstelleMode("alarms");
+        const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
+        if (popup) {
+          return;
+        }
+      }
       deps.router.navigateLeitstelleMode(mode);
       deps.render();
     },
@@ -92,6 +101,11 @@ export function createSharedUiHandlers(
     setShellMenuPosition(position: string): void {
       state.shellMenuPosition = position === "top" ? "top" : "left";
       window.localStorage.setItem(deps.shellMenuPositionStorageKey, state.shellMenuPosition);
+      deps.render();
+    },
+    setFalseAlarmCloseMode(mode: string): void {
+      state.falseAlarmCloseMode = mode === "instant" ? "instant" : "confirm";
+      window.localStorage.setItem(deps.falseAlarmCloseModeStorageKey, state.falseAlarmCloseMode);
       deps.render();
     },
     openSecondaryOperatorWindow(): void {

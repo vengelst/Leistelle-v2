@@ -52,6 +52,10 @@ export function renderOperatorScreen(): string {
   }
 
   const role = state.operatorWindowRole;
+  if (state.leitstelleMode === "intake") {
+    return renderAlarmIntakeScreen(role);
+  }
+
   return role === "secondary" ? renderSecondaryOperatorScreen() : renderPrimaryOperatorScreen();
 }
 
@@ -85,6 +89,150 @@ function renderSecondaryOperatorScreen(): string {
         </section>
       </section>
     </section>
+  `;
+}
+
+function renderAlarmIntakeScreen(role: OperatorWindowRole): string {
+  return `
+    <section class="stack operator-window-layout operator-intake-screen" data-operator-keyboard-root="true">
+      ${renderOperatorScreenHeader("Alarm-Eingangsscreen", role === "secondary" ? "Screen 2" : "Screen 1", "Links bleibt die FIFO-Liste, rechts der fokussierte Eingang mit Bildern, Clip, Zeitdaten, Fehlalarm-Aktion und Standortkarte.")}
+      <section class="operator-screen-layout operator-intake-layout">
+        <aside class="operator-screen-queue-column">
+          ${renderOperatorQueueCard(role)}
+        </aside>
+        <section class="operator-screen-context-column operator-intake-context-column">
+          ${renderAlarmIntakeContext(role)}
+        </section>
+      </section>
+    </section>
+  `;
+}
+
+function renderAlarmIntakeContext(role: OperatorWindowRole): string {
+  if (!state.selectedAlarmDetail) {
+    return `
+      <article class="subcard stack compact operator-screen-placeholder">
+        ${renderSectionHeader("Eingehender Alarm", {
+          pills: [renderPill(role === "secondary" ? "Screen 2" : "Screen 1"), renderPill("Auswahl offen")]
+        })}
+        <p class="muted">Links einen Alarm oeffnen, damit rechts Bilder, Clip, Zeitdaten, Fehlalarm-Aktion und Objektplan geladen werden.</p>
+      </article>
+    `;
+  }
+
+  const detail = state.selectedAlarmDetail;
+  const alarmCase = detail.alarmCase;
+  const site = state.overview?.sites.find((entry) => entry.id === alarmCase.siteId);
+  const camera = site?.devices.find((device) => device.id === alarmCase.primaryDeviceId);
+  const planWorkspace = renderSitePlanWorkspace(alarmCase.siteId, "alarm");
+
+  return `
+    <section class="stack operator-intake-context">
+      <article class="subcard stack compact operator-intake-headline">
+        ${renderSectionHeader(alarmCase.title, {
+          pills: [
+            renderPill(role === "secondary" ? "Screen 2" : "Screen 1"),
+            renderPriorityPill(alarmCase.priority),
+            renderAlarmLifecyclePill(alarmCase.lifecycleStatus),
+            renderAlarmAssessmentPill(alarmCase.assessmentStatus)
+          ]
+        })}
+        <p class="muted">${escapeHtml(site?.customer.name ?? "-")} | ${escapeHtml(site?.siteName ?? alarmCase.siteId)} | Eingang ${formatTimestamp(alarmCase.receivedAt)}</p>
+      </article>
+      <section class="operator-intake-grid">
+        <article class="subcard stack compact operator-intake-images">
+          <h4>Bilder</h4>
+          ${renderAlarmIntakeImageStrip(detail)}
+        </article>
+        <article class="subcard stack compact operator-intake-clip">
+          <h4>Clip und Zeitdaten</h4>
+          ${renderAlarmIntakeClipCard(detail, camera?.name)}
+        </article>
+        <article class="subcard stack compact operator-intake-action operator-focus-zone" id="operator-context-actions" tabindex="-1" role="region" aria-label="Fehlalarmaktion" aria-keyshortcuts="Control+Shift+3" data-operator-focus-zone="actions">
+          <h4>Alarmtyp</h4>
+          <p class="muted">Bei Fehlalarm wird der Fall auf Fehlalarm gesetzt, geschlossen und der naechste Alarm automatisch geoeffnet.</p>
+          <button
+            type="button"
+            class="secondary intake-false-alarm-button"
+            data-alarm-case-id="${alarmCase.id}"
+            ${detail.isArchived || alarmCase.lifecycleStatus === "resolved" || alarmCase.lifecycleStatus === "archived" ? "disabled" : ""}
+          >Fehlalarm setzen und schliessen</button>
+          <p class="muted">Modus: ${state.falseAlarmCloseMode === "instant" ? "Direkt schliessen" : "Mit Rueckfrage bestaetigen"}.</p>
+        </article>
+        <article class="subcard stack compact operator-intake-site">
+          <h4>Ort und Kunde</h4>
+          <dl class="facts compact-gap">
+            <div><dt>Standort</dt><dd>${escapeHtml(site?.siteName ?? alarmCase.siteId)}</dd></div>
+            <div><dt>Kunde</dt><dd>${escapeHtml(site?.customer.name ?? "-")}</dd></div>
+            <div><dt>Adresse</dt><dd>${site ? escapeHtml(`${site.address.street}, ${site.address.postalCode} ${site.address.city}, ${site.address.country}`) : "-"}</dd></div>
+            <div><dt>Kamera</dt><dd>${escapeHtml(camera?.name ?? alarmCase.primaryDeviceId ?? "-")}</dd></div>
+            <div><dt>Alarmtyp</dt><dd>${formatAlarmTypeLabel(alarmCase.alarmType)}</dd></div>
+            <div><dt>Technik</dt><dd>${formatAlarmTechnicalStateLabel(alarmCase.technicalState)}</dd></div>
+          </dl>
+        </article>
+        <article class="subcard stack compact operator-intake-map">
+          <h4>Objekt- / Kamerakarte</h4>
+          ${planWorkspace || renderEmptyState("Fuer diesen Standort ist kein Objekt- oder Kameraplan hinterlegt.")}
+        </article>
+      </section>
+    </section>
+  `;
+}
+
+function renderAlarmIntakeImageStrip(detail: NonNullable<typeof state.selectedAlarmDetail>): string {
+  const imageMedia = detail.media.filter((media) => media.mediaKind === "snapshot" || media.mimeType?.startsWith("image/")).slice(0, 3);
+  const slots = [0, 1, 2].map((index) => imageMedia[index]);
+  return `
+    <div class="operator-intake-image-strip">
+      ${slots.map((media, index) => {
+        if (!media) {
+          return `
+            <article class="subcard stack compact operator-intake-image-slot">
+              <strong>Bild ${index + 1}</strong>
+              <p class="muted">Keine Vorschau verfuegbar.</p>
+            </article>
+          `;
+        }
+        const preview = state.selectedAlarmMediaPreviews[media.id];
+        const src = preview ? escapeHtml(`data:${preview.mimeType};base64,${preview.contentBase64}`) : "";
+        const previewMarkup = preview && preview.mimeType.startsWith("image/")
+          ? `<div class="alarm-media-preview-surface"><img class="alarm-media-preview-embed" src="${src}" alt="${escapeHtml(preview.title)}" /></div>`
+          : `<p class="muted">Vorschau wird geladen.</p>`;
+        return `
+          <article class="subcard stack compact operator-intake-image-slot">
+            <strong>Bild ${index + 1}</strong>
+            <p class="muted">${formatTimestamp(media.capturedAt ?? media.createdAt)}</p>
+            ${previewMarkup}
+            <button type="button" class="secondary alarm-media-preview-button" data-media-id="${media.id}">Bild oeffnen</button>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderAlarmIntakeClipCard(detail: NonNullable<typeof state.selectedAlarmDetail>, cameraName: string | undefined): string {
+  const alarmCase = detail.alarmCase;
+  const clipMedia = detail.media.find((media) => media.mediaKind === "clip" || media.mimeType?.startsWith("video/"));
+  const clipPreview = clipMedia ? state.selectedAlarmMediaPreviews[clipMedia.id] : undefined;
+  const clipSrc = clipPreview ? escapeHtml(`data:${clipPreview.mimeType};base64,${clipPreview.contentBase64}`) : "";
+  const clipMarkup = clipMedia
+    ? clipPreview?.mimeType.startsWith("video/")
+      ? `<div class="alarm-media-preview-surface"><video class="alarm-media-preview-embed" src="${clipSrc}" controls preload="metadata"></video></div>`
+      : `<p class="muted">Clip-Vorschau wird geladen.</p>`
+    : `<p class="muted">Kein Clip vorhanden.</p>`;
+
+  return `
+    ${clipMarkup}
+    ${clipMedia ? `<div class="actions"><button type="button" class="secondary alarm-media-preview-button" data-media-id="${clipMedia.id}">Clip oeffnen</button></div>` : ""}
+    <dl class="facts compact-gap">
+      <div><dt>Eingang</dt><dd>${formatTimestamp(alarmCase.receivedAt)}</dd></div>
+      <div><dt>Quellzeit</dt><dd>${alarmCase.sourceOccurredAt ? formatTimestamp(alarmCase.sourceOccurredAt) : "-"}</dd></div>
+      <div><dt>Letzte Aktivitaet</dt><dd>${formatTimestamp(alarmCase.lastEventAt)}</dd></div>
+      <div><dt>Kamera</dt><dd>${escapeHtml(cameraName ?? alarmCase.primaryDeviceId ?? "-")}</dd></div>
+      <div><dt>Externe Referenz</dt><dd>${escapeHtml(alarmCase.externalSourceRef ?? "-")}</dd></div>
+      <div><dt>Alarmalter</dt><dd>${formatRelativeAge(alarmCase.receivedAt)}</dd></div>
+    </dl>
   `;
 }
 

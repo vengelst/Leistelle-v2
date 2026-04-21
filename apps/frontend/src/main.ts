@@ -39,6 +39,7 @@ import { renderApp } from "./views/app.js";
 const themeStorageKey = "leitstelle.theme.mode";
 const kioskStorageKey = "leitstelle.ui.kiosk";
 const shellMenuPositionStorageKey = "leitstelle.ui.shell-menu-position";
+const falseAlarmCloseModeStorageKey = "leitstelle.alarm.false-close-mode";
 const alarmSoundEnabledStorageKey = "leitstelle.alarm.sound.enabled";
 const alarmSoundIncludeNormalPriorityStorageKey = "leitstelle.alarm.sound.include-normal";
 
@@ -55,6 +56,7 @@ applyOperatorWindowDocumentState(state.operatorWindowRole);
 initializeThemeMode();
 initializeKioskMode();
 initializeShellMenuPosition();
+initializeFalseAlarmCloseMode();
 initializeAlarmSoundPreferences();
 
 const router = createWorkspaceRouter({
@@ -81,6 +83,7 @@ const uiHandlers = createUiHandlers({
   ...runtime,
   alarmSoundEnabledStorageKey,
   alarmSoundIncludeNormalPriorityStorageKey,
+  falseAlarmCloseModeStorageKey,
   applyThemeMode,
   armAlarmSound: () => alarmSoundController.arm(),
   broadcastOperatorLayoutUpdate: () => operatorSelectionSync.broadcastLayoutUpdate(
@@ -91,7 +94,9 @@ const uiHandlers = createUiHandlers({
   ),
   kioskStorageKey,
   shellMenuPositionStorageKey,
-  openSecondaryOperatorWindow: () => openSecondaryOperatorWindow(router.hrefForLeitstelleMode("operator")),
+  openSecondaryOperatorWindow: () => openSecondaryOperatorWindow(
+    router.hrefForLeitstelleMode(state.leitstelleMode === "intake" ? "intake" : "operator")
+  ),
   playAlarmSoundPreview: () => alarmSoundController.playPreview(),
   router,
   themeStorageKey
@@ -306,7 +311,7 @@ function getLeitstelleRefreshScope(): "alarms" | "disturbances" | "wallboard" | 
     return "disturbances";
   }
 
-  if (state.leitstelleMode === "overview" || state.leitstelleMode === "alarms" || state.leitstelleMode === "operator") {
+  if (state.leitstelleMode === "overview" || state.leitstelleMode === "alarms" || state.leitstelleMode === "operator" || state.leitstelleMode === "intake") {
     return "alarms";
   }
 
@@ -350,6 +355,13 @@ function initializeShellMenuPosition(): void {
   const storedPosition = window.localStorage.getItem(shellMenuPositionStorageKey);
   if (storedPosition === "left" || storedPosition === "top") {
     state.shellMenuPosition = storedPosition;
+  }
+}
+
+function initializeFalseAlarmCloseMode(): void {
+  const storedMode = window.localStorage.getItem(falseAlarmCloseModeStorageKey);
+  if (storedMode === "instant" || storedMode === "confirm") {
+    state.falseAlarmCloseMode = storedMode;
   }
 }
 
