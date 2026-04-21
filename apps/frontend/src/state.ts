@@ -80,6 +80,14 @@ export type AlarmPipelineTableColumnKey =
   | "assignment"
   | "age"
   | "action";
+export type AlarmScreenPanelKey = "table" | "media";
+export type AlarmScreenPanelLayout = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+export type AlarmScreenLayout = Record<AlarmScreenPanelKey, AlarmScreenPanelLayout>;
 export type AlarmPipelineTableConfig = {
   panelWidthPercent: number;
   visibleColumns: Record<AlarmPipelineTableColumnKey, boolean>;
@@ -165,6 +173,7 @@ export type FrontendState = {
   alarmSoundPermissionState: AlarmSoundPermissionState;
   falseAlarmCloseMode: FalseAlarmCloseMode;
   alarmPipelineTable: AlarmPipelineTableConfig;
+  alarmScreenLayout: AlarmScreenLayout;
   selectedSettingsSection: SettingsSection;
   userAdministrationView: UserAdministrationView;
   selectedAdministrationUserId?: string;
@@ -310,6 +319,20 @@ export const state: FrontendState = {
       action: 140
     }
   },
+  alarmScreenLayout: {
+    table: {
+      x: 24,
+      y: 24,
+      width: 920,
+      height: 620
+    },
+    media: {
+      x: 980,
+      y: 24,
+      width: 760,
+      height: 620
+    }
+  },
   selectedSettingsSection: "overview",
   userAdministrationView: "list",
   userAdministrationCreateMode: false,
@@ -429,6 +452,20 @@ export function resetSessionScopedState(): void {
       assignment: 170,
       age: 120,
       action: 140
+    }
+  };
+  state.alarmScreenLayout = {
+    table: {
+      x: 24,
+      y: 24,
+      width: 920,
+      height: 620
+    },
+    media: {
+      x: 980,
+      y: 24,
+      width: 760,
+      height: 620
     }
   };
   state.selectedSettingsSection = "overview";

@@ -25,6 +25,7 @@ type SharedUiHandlerDeps = {
   alarmSoundIncludeNormalPriorityStorageKey: string;
   falseAlarmCloseModeStorageKey: string;
   alarmPipelineTableStorageKey: string;
+  alarmScreenLayoutStorageKey: string;
   applyThemeMode: () => void;
   armAlarmSound: () => Promise<void>;
   broadcastOperatorLayoutUpdate: () => void;
@@ -51,6 +52,8 @@ export function createSharedUiHandlers(
   | "setAlarmPipelineTableColumnVisible"
   | "setAlarmPipelineTableColumnWidth"
   | "setAlarmPipelineTablePanelWidth"
+  | "setAlarmScreenPanelPosition"
+  | "setAlarmScreenPanelSize"
   | "openSecondaryOperatorWindow"
   | "toggleOperatorLayoutEditor"
   | "applyOperatorLayoutPreset"
@@ -171,6 +174,40 @@ export function createSharedUiHandlers(
       const normalizedWidth = Math.max(35, Math.min(95, Math.round(width)));
       state.alarmPipelineTable.panelWidthPercent = normalizedWidth;
       persistAlarmPipelineTableConfig();
+      deps.render();
+    },
+    setAlarmScreenPanelPosition(panel: string, x: number, y: number): void {
+      if (!(panel in state.alarmScreenLayout)) {
+        return;
+      }
+      const normalizedX = Math.max(0, Math.round(x));
+      const normalizedY = Math.max(0, Math.round(y));
+      state.alarmScreenLayout = {
+        ...state.alarmScreenLayout,
+        [panel]: {
+          ...state.alarmScreenLayout[panel as keyof typeof state.alarmScreenLayout],
+          x: normalizedX,
+          y: normalizedY
+        }
+      };
+      persistAlarmScreenLayoutConfig();
+      deps.render();
+    },
+    setAlarmScreenPanelSize(panel: string, width: number, height: number): void {
+      if (!(panel in state.alarmScreenLayout)) {
+        return;
+      }
+      const normalizedWidth = Math.max(360, Math.min(1800, Math.round(width)));
+      const normalizedHeight = Math.max(260, Math.min(1200, Math.round(height)));
+      state.alarmScreenLayout = {
+        ...state.alarmScreenLayout,
+        [panel]: {
+          ...state.alarmScreenLayout[panel as keyof typeof state.alarmScreenLayout],
+          width: normalizedWidth,
+          height: normalizedHeight
+        }
+      };
+      persistAlarmScreenLayoutConfig();
       deps.render();
     },
     openSecondaryOperatorWindow(): void {
@@ -303,5 +340,13 @@ export function createSharedUiHandlers(
 
   function persistAlarmPipelineTableConfig(): void {
     window.localStorage.setItem(deps.alarmPipelineTableStorageKey, JSON.stringify(state.alarmPipelineTable));
+  }
+
+  function persistAlarmScreenLayoutConfig(): void {
+    const userId = state.session?.user.id;
+    if (!userId) {
+      return;
+    }
+    window.localStorage.setItem(`${deps.alarmScreenLayoutStorageKey}.${userId}`, JSON.stringify(state.alarmScreenLayout));
   }
 }

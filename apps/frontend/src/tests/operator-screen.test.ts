@@ -702,6 +702,8 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       setAlarmPipelineTableColumnVisible: () => undefined,
       setAlarmPipelineTableColumnWidth: () => undefined,
       setAlarmPipelineTablePanelWidth: () => undefined,
+      setAlarmScreenPanelPosition: () => undefined,
+      setAlarmScreenPanelSize: () => undefined,
       openSecondaryOperatorWindow: () => undefined,
       toggleOperatorLayoutEditor: () => undefined,
       applyOperatorLayoutPreset: () => undefined,

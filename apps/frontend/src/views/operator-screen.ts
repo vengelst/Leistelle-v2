@@ -97,6 +97,8 @@ export function renderAlarmPipelineTableOnly(): string {
     });
   const currentUserId = state.session?.user.id;
   const tableConfig = state.alarmPipelineTable;
+  const tablePanel = state.alarmScreenLayout.table;
+  const mediaPanel = state.alarmScreenLayout.media;
   const visibleColumns = alarmTableColumns.filter((column) => tableConfig.visibleColumns[column.key]);
   const renderCell = (columnKey: AlarmPipelineTableColumnKey, alarm: (typeof alarms)[number], index: number, isSelected: boolean, assignmentLabel: string) => {
     switch (columnKey) {
@@ -140,9 +142,17 @@ export function renderAlarmPipelineTableOnly(): string {
   };
 
   return `
-    <main class="alarm-pipeline-table-only" data-operator-keyboard-root="true" style="--alarm-pipeline-panel-width: ${tableConfig.panelWidthPercent}%;">
-      <section class="alarm-pipeline-table-panel">
-        <article class="subcard stack compact alarm-pipeline-table-controls">
+    <main class="alarm-pipeline-table-only" data-operator-keyboard-root="true">
+      <section
+        class="alarm-pipeline-floating-panel alarm-pipeline-table-panel"
+        data-alarm-layout-panel
+        data-panel-key="table"
+        style="left:${tablePanel.x}px; top:${tablePanel.y}px; width:${tablePanel.width}px; height:${tablePanel.height}px;"
+      >
+        <article class="subcard stack compact alarm-pipeline-table-controls alarm-pipeline-panel-content">
+          <div class="alarm-pipeline-panel-titlebar" data-alarm-layout-drag-handle data-panel-key="table">
+            <strong>Alarmtabelle</strong>
+          </div>
           <details open>
             <summary>Spalten</summary>
             <div class="alarm-pipeline-table-control-grid">
@@ -160,8 +170,7 @@ export function renderAlarmPipelineTableOnly(): string {
               `).join("")}
             </div>
           </details>
-        </article>
-        <div class="operator-intake-table-wrap">
+          <div class="operator-intake-table-wrap">
         <table class="operator-intake-queue-table">
           <colgroup>
             ${visibleColumns.map((column) => `<col style="width:${tableConfig.columnWidths[column.key]}px" />`).join("")}
@@ -203,9 +212,40 @@ export function renderAlarmPipelineTableOnly(): string {
           </tbody>
         </table>
       </div>
+        </article>
+        <span class="alarm-pipeline-panel-resize-handle" data-alarm-layout-resize-handle data-panel-key="table" aria-hidden="true"></span>
       </section>
-      <section class="alarm-pipeline-table-spacer" aria-hidden="true"></section>
+      <section
+        class="alarm-pipeline-floating-panel alarm-pipeline-media-panel"
+        data-alarm-layout-panel
+        data-panel-key="media"
+        style="left:${mediaPanel.x}px; top:${mediaPanel.y}px; width:${mediaPanel.width}px; height:${mediaPanel.height}px;"
+      >
+        <article class="subcard stack compact alarm-pipeline-panel-content">
+          <div class="alarm-pipeline-panel-titlebar" data-alarm-layout-drag-handle data-panel-key="media">
+            <strong>Bilder und Clip</strong>
+          </div>
+          ${renderAlarmPipelineMediaPanel()}
+        </article>
+        <span class="alarm-pipeline-panel-resize-handle" data-alarm-layout-resize-handle data-panel-key="media" aria-hidden="true"></span>
+      </section>
     </main>
+  `;
+}
+
+function renderAlarmPipelineMediaPanel(): string {
+  if (!state.selectedAlarmDetail) {
+    return `<p class="muted">Alarm in der Tabelle oeffnen, um hier Bilder und Clip zu sehen.</p>`;
+  }
+
+  const detail = state.selectedAlarmDetail;
+  return `
+    <section class="stack compact alarm-pipeline-media-content">
+      ${renderAlarmIntakeImageStrip(detail)}
+      <article class="subcard stack compact">
+        ${renderAlarmIntakeClipCard(detail, undefined)}
+      </article>
+    </section>
   `;
 }
 

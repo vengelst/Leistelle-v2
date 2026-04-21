@@ -41,6 +41,7 @@ const kioskStorageKey = "leitstelle.ui.kiosk";
 const shellMenuPositionStorageKey = "leitstelle.ui.shell-menu-position";
 const falseAlarmCloseModeStorageKey = "leitstelle.alarm.false-close-mode";
 const alarmPipelineTableStorageKey = "leitstelle.alarm.pipeline-table";
+const alarmScreenLayoutStorageKey = "leitstelle.alarm.screen-layout";
 const alarmSoundEnabledStorageKey = "leitstelle.alarm.sound.enabled";
 const alarmSoundIncludeNormalPriorityStorageKey = "leitstelle.alarm.sound.include-normal";
 
@@ -51,6 +52,7 @@ const root = app;
 let renderScheduled = false;
 let renderBatchDepth = 0;
 let renderQueuedWhileBatch = false;
+let alarmScreenLayoutLoadedForUserId: string | null = null;
 
 state.operatorWindowRole = resolveOperatorWindowRole(window.location.search);
 applyOperatorWindowDocumentState(state.operatorWindowRole);
@@ -87,6 +89,7 @@ const uiHandlers = createUiHandlers({
   alarmSoundIncludeNormalPriorityStorageKey,
   falseAlarmCloseModeStorageKey,
   alarmPipelineTableStorageKey,
+  alarmScreenLayoutStorageKey,
   applyThemeMode,
   armAlarmSound: () => alarmSoundController.arm(),
   broadcastOperatorLayoutUpdate: () => operatorSelectionSync.broadcastLayoutUpdate(
@@ -440,11 +443,54 @@ function render(immediate = false): void {
     return;
   }
 
+  ensureAlarmScreenLayoutLoadedForCurrentUser();
+
   const preservedDomState = captureDomState(root);
   root.innerHTML = renderApp();
   bindAppEvents(handlers);
   restoreDomState(root, preservedDomState);
   applyPendingOperatorFocus();
+}
+
+function ensureAlarmScreenLayoutLoadedForCurrentUser(): void {
+  const userId = state.session?.user.id ?? null;
+  if (!userId) {
+    alarmScreenLayoutLoadedForUserId = null;
+    return;
+  }
+  if (alarmScreenLayoutLoadedForUserId === userId) {
+    return;
+  }
+
+  alarmScreenLayoutLoadedForUserId = userId;
+  const stored = window.localStorage.getItem(`${alarmScreenLayoutStorageKey}.${userId}`);
+  if (!stored) {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<typeof state.alarmScreenLayout>;
+    state.alarmScreenLayout = {
+      table: {
+        ...state.alarmScreenLayout.table,
+        ...(parsed.table ?? {}),
+        x: Math.max(0, Math.round(parsed.table?.x ?? state.alarmScreenLayout.table.x)),
+        y: Math.max(0, Math.round(parsed.table?.y ?? state.alarmScreenLayout.table.y)),
+        width: Math.max(360, Math.min(1800, Math.round(parsed.table?.width ?? state.alarmScreenLayout.table.width))),
+        height: Math.max(260, Math.min(1200, Math.round(parsed.table?.height ?? state.alarmScreenLayout.table.height)))
+      },
+      media: {
+        ...state.alarmScreenLayout.media,
+        ...(parsed.media ?? {}),
+        x: Math.max(0, Math.round(parsed.media?.x ?? state.alarmScreenLayout.media.x)),
+        y: Math.max(0, Math.round(parsed.media?.y ?? state.alarmScreenLayout.media.y)),
+        width: Math.max(360, Math.min(1800, Math.round(parsed.media?.width ?? state.alarmScreenLayout.media.width))),
+        height: Math.max(260, Math.min(1200, Math.round(parsed.media?.height ?? state.alarmScreenLayout.media.height)))
+      }
+    };
+  } catch {
+    // Defekte User-Layoutdaten ignorieren und Defaults nutzen.
+  }
 }
 
 function setBusyState(key: string, label: string | null): void {

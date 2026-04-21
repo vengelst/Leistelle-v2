@@ -22,6 +22,8 @@ export type AppHandlers = {
   setAlarmPipelineTableColumnVisible: (column: string, visible: boolean) => void;
   setAlarmPipelineTableColumnWidth: (column: string, width: number) => void;
   setAlarmPipelineTablePanelWidth: (width: number) => void;
+  setAlarmScreenPanelPosition: (panel: string, x: number, y: number) => void;
+  setAlarmScreenPanelSize: (panel: string, width: number, height: number) => void;
   openSecondaryOperatorWindow: () => void;
   toggleOperatorLayoutEditor: () => void;
   applyOperatorLayoutPreset: (presetId: string) => void;
@@ -534,6 +536,7 @@ export function bindAppEvents(handlers: AppHandlers): void {
     handlers.setAlarmPipelineTablePanelWidth(Number((event.currentTarget as HTMLInputElement).value));
   });
   bindAlarmTableColumnResizeHandles(handlers);
+  bindAlarmScreenPanelInteractions(handlers);
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());
@@ -843,6 +846,68 @@ function bindAlarmTableColumnResizeHandles(
       const onMouseMove = (moveEvent: MouseEvent) => {
         const delta = moveEvent.clientX - startX;
         handlers.setAlarmPipelineTableColumnWidth(columnKey, startWidth + delta);
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+  }
+}
+
+function bindAlarmScreenPanelInteractions(
+  handlers: Pick<AppHandlers, "setAlarmScreenPanelPosition" | "setAlarmScreenPanelSize">
+): void {
+  for (const handle of Array.from(document.querySelectorAll<HTMLElement>("[data-alarm-layout-drag-handle]"))) {
+    handle.addEventListener("mousedown", (event: MouseEvent) => {
+      event.preventDefault();
+      const panel = handle.dataset.panelKey ?? "";
+      const panelElement = handle.closest<HTMLElement>("[data-alarm-layout-panel]");
+      if (!panel || !panelElement) {
+        return;
+      }
+      const startRect = panelElement.getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startLeft = startRect.left;
+      const startTop = startRect.top;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        handlers.setAlarmScreenPanelPosition(panel, startLeft + (moveEvent.clientX - startX), startTop + (moveEvent.clientY - startY));
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+  }
+
+  for (const handle of Array.from(document.querySelectorAll<HTMLElement>("[data-alarm-layout-resize-handle]"))) {
+    handle.addEventListener("mousedown", (event: MouseEvent) => {
+      event.preventDefault();
+      const panel = handle.dataset.panelKey ?? "";
+      const panelElement = handle.closest<HTMLElement>("[data-alarm-layout-panel]");
+      if (!panel || !panelElement) {
+        return;
+      }
+      const startRect = panelElement.getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        handlers.setAlarmScreenPanelSize(
+          panel,
+          startRect.width + (moveEvent.clientX - startX),
+          startRect.height + (moveEvent.clientY - startY)
+        );
       };
 
       const onMouseUp = () => {
