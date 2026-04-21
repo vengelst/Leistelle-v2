@@ -19,7 +19,9 @@ param(
   [switch]$ConfirmSeed,
   [switch]$RunBackup,
   [switch]$SyncDatabase,
+  [switch]$SyncMedia,
   [switch]$AllowProdDatabaseSync,
+  [string]$LocalMediaPath = "media",
   [string]$BackupDir = "/opt/leitstelle/backups",
   [switch]$SkipHealthCheck
 )
@@ -259,6 +261,10 @@ function Validate-Arguments() {
     Fail "SyncDatabase nach prod ist gesperrt. Fuer bewusstes Ueberschreiben zusaetzlich -AllowProdDatabaseSync setzen."
   }
 
+  if ($SyncMedia -and $Action -ne "server-sync" -and $Action -ne "menu") {
+    Fail "SyncMedia ist nur fuer -Action server-sync (oder interaktiv ueber menu) vorgesehen."
+  }
+
   if ($Environment -eq "custom") {
     $requiredCustomParameters = @("Server", "ServerRepoPath", "ComposeEnvFile", "HealthUrl")
     $missingCustomParameters = @()
@@ -461,6 +467,46 @@ function Show-DeployPlan() {
 
 function Get-LocalDatabaseDumpPath() {
   return Join-Path ([System.IO.Path]::GetTempPath()) "leitstelle-db-transfer.sql.gz"
+}
+
+function Get-LocalMediaArchivePath() {
+  return Join-Path ([System.IO.Path]::GetTempPath()) "leitstelle-media-transfer.tar.gz"
+}
+
+function Resolve-LocalMediaSourcePath() {
+  if ([System.IO.Path]::IsPathRooted($LocalMediaPath)) {
+    return (Resolve-Path $LocalMediaPath -ErrorAction Stop).Path
+  }
+
+  $candidate = Join-Path $repoRoot $LocalMediaPath
+  return (Resolve-Path $candidate -ErrorAction Stop).Path
+}
+
+function New-LocalMediaTransferArchive() {
+  $archivePath = Get-LocalMediaArchivePath
+  $sourcePath = Resolve-LocalMediaSourcePath
+
+  if (-not (Test-Path $sourcePath -PathType Container)) {
+    Fail ("Lokaler Medienpfad ist kein Verzeichnis: {0}" -f $sourcePath)
+  }
+
+  Step "Lokale Medien fuer Servertransfer archivieren"
+
+  if (Is-DryRun) {
+    Write-WhatIf "Wuerde den lokalen Medienordner als tar.gz archivieren."
+    Write-Info ("Quelle: {0}" -f $sourcePath)
+    Write-Info ("Archiv : {0}" -f $archivePath)
+    Write-Host ("tar -czf ""{0}"" -C ""{1}"" ." -f $archivePath, $sourcePath) -ForegroundColor DarkGray
+    return $archivePath
+  }
+
+  if (Test-Path $archivePath) {
+    Remove-Item $archivePath -Force -ErrorAction SilentlyContinue
+  }
+
+  Invoke-Checked "tar" @("-czf", $archivePath, "-C", $sourcePath, ".") "Medienarchiv konnte lokal nicht erzeugt werden."
+  Write-Info ("Medienarchiv bereit: {0}" -f $archivePath)
+  return $archivePath
 }
 
 function Get-LocalComposeEnvFile() {
@@ -797,7 +843,9 @@ function Invoke-ServerSync() {
   $remoteBootstrapClonePath = "/tmp/leitstelle-bootstrap-clone"
   $remoteDbDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
   $remoteDbContainerDumpPath = "/tmp/leitstelle-db-transfer.sql.gz"
+  $remoteMediaArchivePath = "/tmp/leitstelle-media-transfer.tar.gz"
   $localDumpPath = $null
+  $localMediaArchivePath = $null
   $localUserCount = 0
 
   Step "Serverabgleich vorbereiten"
@@ -805,6 +853,10 @@ function Invoke-ServerSync() {
   Write-Info ("Server: {0}" -f $Server)
   Write-Info ("Remote Git: {0}" -f $effectiveRemoteGitUrl)
   Write-Info ("DB-Transfer: {0}" -f $(if ($SyncDatabase) { "ja" } else { "nein" }))
+  Write-Info ("Media-Transfer: {0}" -f $(if ($SyncMedia) { "ja" } else { "nein" }))
+  if ($SyncMedia) {
+    Write-Info ("Lokaler Medienpfad: {0}" -f $LocalMediaPath)
+  }
   if ($SyncDatabase -and $Environment -eq "prod") {
     Write-Info ("PROD-Override freigegeben: {0}" -f $(if ($AllowProdDatabaseSync) { "ja" } else { "nein" }))
   }
@@ -817,6 +869,9 @@ function Invoke-ServerSync() {
     $localDumpPath = New-LocalDatabaseTransferDump
     $localUserCount = Get-LocalDatabaseUserCount
     Write-Info ("Lokale Benutzer im Transfer-Dump: {0}" -f $localUserCount)
+  }
+  if ($SyncMedia) {
+    $localMediaArchivePath = New-LocalMediaTransferArchive
   }
 
   $remoteHealthCommand = if ($SkipHealthCheck) {
@@ -889,6 +944,21 @@ rm -f '$remoteDbDumpPath'
     "echo '[db] Kein Datenbanktransfer angefordert.'"
   }
 
+  $remoteMediaRestoreCommand = if ($SyncMedia) {
+    @"
+if [ ! -f '$remoteMediaArchivePath' ]; then
+  echo '[media] Transferarchiv fehlt auf dem Server.' >&2
+  exit 1
+fi
+echo '[media] Entpacke Medienarchiv nach $serverMediaPath.'
+mkdir -p '$serverMediaPath'
+tar -xzf '$remoteMediaArchivePath' -C '$serverMediaPath'
+rm -f '$remoteMediaArchivePath'
+"@
+  } else {
+    "echo '[media] Kein Medientransfer angefordert.'"
+  }
+
   $remoteMigrationCommand = if ($RunMigration) {
     "$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/migrate.js' </dev/null"
   } else {
@@ -936,6 +1006,7 @@ git pull --ff-only origin '$targetBranch'
 TARGET_COMMIT=`$(git rev-parse --short HEAD)
 echo "Server-Ziel: branch $targetBranch (`$TARGET_COMMIT)"
 $remoteRestoreCommand
+$remoteMediaRestoreCommand
 echo 'App-Services werden ohne Build-Cache neu gebaut.'
 $remoteComposeCommand build --pull --no-cache backend frontend worker
 echo 'Optionale Datenbankschritte nach dem Abgleich.'
@@ -965,6 +1036,10 @@ echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
       Write-Host ("docker compose --env-file ""{0}"" exec -T db sh -lc 'export PGPASSWORD=""`$POSTGRES_PASSWORD""; pg_dump -U ""`$POSTGRES_USER"" --format=plain --no-owner --no-privileges ""`$POSTGRES_DB"" | gzip -9 > /tmp/leitstelle-db-transfer.sql.gz'" -f $envFile) -ForegroundColor DarkGray
       Write-Host ("scp ""{0}"" ""{1}:{2}""" -f (Get-LocalDatabaseDumpPath), $Server, $remoteDbDumpPath) -ForegroundColor DarkGray
     }
+    if ($SyncMedia) {
+      Write-Host ("tar -czf ""{0}"" -C ""<lokaler-media-pfad>"" ." -f (Get-LocalMediaArchivePath)) -ForegroundColor DarkGray
+      Write-Host ("scp ""{0}"" ""{1}:{2}""" -f (Get-LocalMediaArchivePath), $Server, $remoteMediaArchivePath) -ForegroundColor DarkGray
+    }
     Write-Info "Remote-Befehle auf dem Server waeren:"
     Write-Host $remoteScript -ForegroundColor DarkGray
     return
@@ -973,6 +1048,10 @@ echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
   if ($SyncDatabase) {
     Step "DB-Transferdatei auf den Server kopieren"
     Invoke-Checked "scp" @($localDumpPath, ("{0}:{1}" -f $Server, $remoteDbDumpPath)) "DB-Transferdatei konnte nicht auf den Server kopiert werden."
+  }
+  if ($SyncMedia) {
+    Step "Medienarchiv auf den Server kopieren"
+    Invoke-Checked "scp" @($localMediaArchivePath, ("{0}:{1}" -f $Server, $remoteMediaArchivePath)) "Medienarchiv konnte nicht auf den Server kopiert werden."
   }
 
   Step "Serverabgleich auf dem Server ausfuehren"
@@ -983,6 +1062,9 @@ echo "Serverabgleich abgeschlossen: branch $targetBranch (`$TARGET_COMMIT)"
 
   if ($localDumpPath -and (Test-Path $localDumpPath)) {
     Remove-Item $localDumpPath -Force -ErrorAction SilentlyContinue
+  }
+  if ($localMediaArchivePath -and (Test-Path $localMediaArchivePath)) {
+    Remove-Item $localMediaArchivePath -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -1342,6 +1424,7 @@ function Start-InteractiveMenu() {
             $script:ConfirmSeed = Read-YesNo "Seed-Schutz bestaetigen?"
           }
           $script:SyncDatabase = Read-YesNo "Lokale Datenbank mit Inhalten auf den Server uebertragen?"
+          $script:SyncMedia = Read-YesNo "Lokale Medien auf den Server uebertragen?"
           if ($SyncDatabase) {
             $script:RunBackup = $true
             if ($Environment -eq "prod") {
@@ -1355,6 +1438,13 @@ function Start-InteractiveMenu() {
           } else {
             $script:AllowProdDatabaseSync = $false
           }
+          if ($SyncMedia) {
+            $mediaInput = Read-InputOrDefault "Lokaler Medienpfad" $LocalMediaPath
+            $script:LocalMediaPath = $mediaInput.Trim()
+            if ($script:LocalMediaPath.Length -eq 0) {
+              $script:LocalMediaPath = "media"
+            }
+          }
           $script:SkipHealthCheck = -not (Read-YesNo "Healthcheck nach dem Abgleich ausfuehren?")
           Validate-Arguments
           Invoke-ScriptSubprocess "server-sync" @{
@@ -1365,7 +1455,9 @@ function Start-InteractiveMenu() {
             RunSeed = [bool]$RunSeed
             ConfirmSeed = [bool]$ConfirmSeed
             SyncDatabase = [bool]$SyncDatabase
+            SyncMedia = [bool]$SyncMedia
             AllowProdDatabaseSync = [bool]$AllowProdDatabaseSync
+            LocalMediaPath = $LocalMediaPath
             SkipHealthCheck = [bool]$SkipHealthCheck
           }
           Pause

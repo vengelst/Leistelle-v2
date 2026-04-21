@@ -220,7 +220,9 @@ export function createAlarmHandlers(
       return;
     }
 
-    const previewMedia = detail.media.slice(0, 3);
+    const snapshotMedia = detail.media.filter((media) => media.mediaKind === "snapshot" || media.mimeType?.startsWith("image/")).slice(0, 3);
+    const clipMedia = detail.media.find((media) => media.mediaKind === "clip" || media.mimeType?.startsWith("video/"));
+    const previewMedia = clipMedia ? [...snapshotMedia, clipMedia] : snapshotMedia;
     const missingMedia = previewMedia.filter((media) =>
       state.selectedAlarmMediaPreviews[media.id] === undefined && state.selectedAlarmMediaPreviewErrors[media.id] === undefined
     );
@@ -544,7 +546,13 @@ export function createAlarmHandlers(
           buildMediaAccessPath(state.selectedAlarmDetail, mediaId, mode),
           { method: "GET" }
         );
-        if (mode === "inline") {
+        if (mode === "inline" && state.leitstelleMode === "alarms") {
+          state.selectedAlarmMediaPreviews = {
+            ...state.selectedAlarmMediaPreviews,
+            [mediaId]: response.document
+          };
+          state.message = "Medienvorschau aktualisiert.";
+        } else if (mode === "inline") {
           openAccessDocument(response.document);
           state.message = "Medienvorschau geoeffnet.";
         } else {

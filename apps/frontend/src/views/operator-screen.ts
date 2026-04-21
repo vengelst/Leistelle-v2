@@ -152,6 +152,13 @@ export function renderAlarmPipelineTableOnly(): string {
         <article class="subcard stack compact alarm-pipeline-table-controls alarm-pipeline-panel-content">
           <div class="alarm-pipeline-panel-titlebar" data-alarm-layout-drag-handle data-panel-key="table">
             <strong>Alarmtabelle</strong>
+            <button
+              type="button"
+              id="theme-toggle-button"
+              class="secondary theme-toggle-button icon-only-button"
+              aria-label="${state.themeMode === "dark" ? "Auf helles Theme umschalten" : "Auf dunkles Theme umschalten"}"
+              title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
+            >${state.themeMode === "dark" ? "☀" : "☾"}</button>
           </div>
           <details open>
             <summary>Spalten</summary>
@@ -414,7 +421,7 @@ function renderAlarmIntakeClipCard(detail: NonNullable<typeof state.selectedAlar
 
   return `
     ${clipMarkup}
-    ${clipMedia ? `<div class="actions"><button type="button" class="secondary alarm-media-preview-button" data-media-id="${clipMedia.id}">Clip oeffnen</button></div>` : ""}
+    ${clipMedia ? `<div class="actions"><button type="button" class="secondary alarm-media-preview-button" data-media-id="${clipMedia.id}">Clip starten</button></div>` : ""}
     <dl class="facts compact-gap">
       <div><dt>Eingang</dt><dd>${formatTimestamp(alarmCase.receivedAt)}</dd></div>
       <div><dt>Quellzeit</dt><dd>${alarmCase.sourceOccurredAt ? formatTimestamp(alarmCase.sourceOccurredAt) : "-"}</dd></div>

@@ -772,59 +772,39 @@ export async function seedDatabase(database: DatabaseClient, bootstrapPassword: 
 
     const clipUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
     const now = Date.now();
-    const seedAlarms = [
-      {
-        id: "alarm-seed-hafen-nordtor",
-        primaryDeviceId: cameraId,
-        alarmType: "motion",
-        priority: "high",
-        priorityRank: 3,
-        lifecycleStatus: "received",
-        assessmentStatus: "pending",
-        technicalState: "complete",
-        incompleteReason: null,
-        title: "Zaunalarm Nordtor",
-        description: "Bewegung im Bereich Nordtor. Demoalarm fuer den zweiten Alarmmonitor.",
-        receivedAt: new Date(now - (18 * 60 * 1000)).toISOString(),
-        lastEventAt: new Date(now - (17 * 60 * 1000)).toISOString(),
-        sourcePayload: { zone: "Nordtor", vendor: "Axis", profile: "three_images_one_clip" },
-        technicalDetails: { queueHint: "fifo", demo: true }
-      },
-      {
-        id: "alarm-seed-hafen-westzaun",
-        primaryDeviceId: "device-ptz-hafen",
-        alarmType: "sabotage",
-        priority: "critical",
-        priorityRank: 4,
-        lifecycleStatus: "queued",
-        assessmentStatus: "pending",
-        technicalState: "incomplete",
-        incompleteReason: "weitere Rueckmeldung von Kamera steht aus",
-        title: "Sabotage Westzaun",
-        description: "Sabotagehinweis an Kamera Westzaun. Demoalarm mit Bildfolge und Clip.",
-        receivedAt: new Date(now - (12 * 60 * 1000)).toISOString(),
-        lastEventAt: new Date(now - (11 * 60 * 1000)).toISOString(),
-        sourcePayload: { zone: "Westzaun", vendor: "Bosch", profile: "three_images_one_clip" },
-        technicalDetails: { queueHint: "fifo", demo: true }
-      },
-      {
-        id: "alarm-seed-hafen-lager-ost",
-        primaryDeviceId: "device-nvr-hafen",
-        alarmType: "video_loss",
-        priority: "normal",
-        priorityRank: 2,
-        lifecycleStatus: "in_progress",
-        assessmentStatus: "pending",
-        technicalState: "incomplete",
-        incompleteReason: "Recorder meldet Kanalstoerung",
-        title: "Videoloss Lager Ost",
-        description: "Recorder meldet Videoloss am Lager Ost. Demoalarm fuer Medienvorschau im Zweitbildschirm.",
-        receivedAt: new Date(now - (6 * 60 * 1000)).toISOString(),
-        lastEventAt: new Date(now - (5 * 60 * 1000)).toISOString(),
-        sourcePayload: { zone: "Lager Ost", vendor: "Hanwha", profile: "three_images_one_clip" },
-        technicalDetails: { queueHint: "fifo", demo: true }
-      }
+    const alarmTemplates = [
+      { zone: "Nordtor", alarmType: "motion", priority: "high", priorityRank: 3, vendor: "Axis", deviceId: cameraId },
+      { zone: "Westzaun", alarmType: "sabotage", priority: "critical", priorityRank: 4, vendor: "Bosch", deviceId: "device-ptz-hafen" },
+      { zone: "Lager Ost", alarmType: "video_loss", priority: "normal", priorityRank: 2, vendor: "Hanwha", deviceId: "device-nvr-hafen" },
+      { zone: "Hafentor Sued", alarmType: "line_crossing", priority: "high", priorityRank: 3, vendor: "Axis", deviceId: cameraId },
+      { zone: "Containerfeld A", alarmType: "area_entry", priority: "normal", priorityRank: 2, vendor: "Hikvision", deviceId: "device-ptz-hafen" }
     ] as const;
+    const lifecycleStates = ["received", "queued", "in_progress"] as const;
+    const seedAlarms = Array.from({ length: 25 }, (_, index) => {
+      const template = alarmTemplates[index % alarmTemplates.length]!;
+      const receivedAt = new Date(now - ((30 - index) * 2 * 60 * 1000)).toISOString();
+      const lastEventAt = new Date(new Date(receivedAt).getTime() + 45_000).toISOString();
+      const lifecycleStatus = lifecycleStates[index % lifecycleStates.length]!;
+      const isIncomplete = index % 3 === 1;
+      const ordinal = String(index + 1).padStart(2, "0");
+      return {
+        id: `alarm-seed-hafen-${ordinal}`,
+        primaryDeviceId: template.deviceId,
+        alarmType: template.alarmType,
+        priority: template.priority,
+        priorityRank: template.priorityRank,
+        lifecycleStatus,
+        assessmentStatus: "pending",
+        technicalState: isIncomplete ? "incomplete" : "complete",
+        incompleteReason: isIncomplete ? `Technischer Hinweis im Eingang ${ordinal}` : null,
+        title: `Demoalarm ${ordinal} ${template.zone}`,
+        description: `Seed-Alarm ${ordinal} fuer den Alarmscreen mit 3 Bildern und Clip.`,
+        receivedAt,
+        lastEventAt,
+        sourcePayload: { zone: template.zone, vendor: template.vendor, profile: "three_images_one_clip", demoIndex: index + 1 },
+        technicalDetails: { queueHint: "fifo", demo: true, ordinal: index + 1 }
+      };
+    });
 
     for (const alarm of seedAlarms) {
       await client.query(
