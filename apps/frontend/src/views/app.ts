@@ -69,6 +69,10 @@ export function renderApp(): string {
     return renderStandaloneLoginScreen();
   }
 
+  if (state.activeWorkspace === "leitstelle" && state.leitstelleMode === "alarms") {
+    return `<main class="alarm-pipeline-empty-screen"></main>`;
+  }
+
   // Das zweite Operatorfenster ist eine eigene, reduzierte Root-Ansicht.
   if (state.operatorWindowRole === "secondary") {
     return renderSecondaryOperatorWindow();

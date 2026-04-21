@@ -84,7 +84,7 @@ test("leitstelle toolbar renders alarm sound controls in the existing operator w
   resetSessionScopedState();
   state.session = createSession(["operator"]);
   state.activeWorkspace = "leitstelle";
-  state.leitstelleMode = "alarms";
+  state.leitstelleMode = "overview";
 
   const html = renderApp();
 
@@ -222,11 +222,10 @@ test("alarm pipeline mode renders an empty screen only", () => {
 
   const html = renderApp();
 
-  assert.ok(html.includes("operator-workspace-empty"));
-  assert.ok(!html.includes('data-pipeline-assignment-scope="mine"'));
-  assert.ok(!html.includes('id="pipeline-filter-form"'));
-  assert.ok(!html.includes('id="follow-up-form"'));
-  assert.ok(!html.includes("mein Fall"));
+  assert.equal(html.trim(), '<main class="alarm-pipeline-empty-screen"></main>');
+  assert.ok(!html.includes("Hauptnavigation"));
+  assert.ok(!html.includes("Leitstellenmodus"));
+  assert.ok(!html.includes("Alarmton"));
 });
 
 test("settings navigation entry stays hidden for non administrative roles", () => {
