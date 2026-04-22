@@ -508,6 +508,12 @@ h1 {
   user-select: none;
 }
 
+.alarm-pipeline-panel-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .alarm-pipeline-table-controls details {
   border: 1px dashed var(--border);
   border-radius: 12px;

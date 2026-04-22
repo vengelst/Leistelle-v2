@@ -209,7 +209,7 @@ function renderWorkspaceNavigation(
               ? `
                 <div class="workspace-nav-subroutes">
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}" target="leitstelle-alarm-pipeline">Alarm-Pipeline</a>
+                  <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("alarms")}">Alarm-Pipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
                   <a class="button-link secondary workspace-nav-subroute" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>
@@ -258,7 +258,7 @@ function renderLeitstelleToolbar(): string {
         </button>
         <div class="workspace-subnav leitstelle-toolbar-nav">
           <a class="button-link secondary" href="${hrefForLeitstelleMode("overview")}">Arbeitsplatz</a>
-          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}" target="leitstelle-alarm-pipeline">Alarm-Pipeline</a>
+          <a class="button-link secondary" href="${hrefForLeitstelleMode("alarms")}">Alarm-Pipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("disturbances")}">Stoerungspipeline</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("operator")}">Alarmannahme-Screen</a>
           <a class="button-link secondary" href="${hrefForLeitstelleMode("intake")}">Alarm-Eingangsscreen</a>

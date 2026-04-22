@@ -257,13 +257,16 @@ export function renderAlarmPipelineTableOnly(): string {
         <article class="subcard stack compact alarm-pipeline-table-controls alarm-pipeline-panel-content">
           <div class="alarm-pipeline-panel-titlebar" data-alarm-layout-drag-handle data-panel-key="table">
             <strong>Alarmtabelle</strong>
-            <button
-              type="button"
-              id="theme-toggle-button"
-              class="secondary theme-toggle-button icon-only-button"
-              aria-label="${state.themeMode === "dark" ? "Auf helles Theme umschalten" : "Auf dunkles Theme umschalten"}"
-              title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
-            >${state.themeMode === "dark" ? "☀" : "☾"}</button>
+            <div class="alarm-pipeline-panel-titlebar-actions">
+              <a class="button-link secondary" href="#leitstelle/overview">Home</a>
+              <button
+                type="button"
+                id="theme-toggle-button"
+                class="secondary theme-toggle-button icon-only-button"
+                aria-label="${state.themeMode === "dark" ? "Auf helles Theme umschalten" : "Auf dunkles Theme umschalten"}"
+                title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
+              >${state.themeMode === "dark" ? "☀" : "☾"}</button>
+            </div>
           </div>
           <details>
             <summary>Spalten</summary>
