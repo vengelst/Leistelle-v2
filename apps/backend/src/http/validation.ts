@@ -125,6 +125,12 @@ export const loginRequestSchema: ZodType<LoginRequest> = z
   })
   .transform((value) => compactOptionalProperties(value) as LoginRequest);
 
+export const logoutRequestSchema: ZodType<{ forceReleaseAssignments?: boolean }> = z
+  .object({
+    forceReleaseAssignments: z.boolean().optional()
+  })
+  .transform((value) => compactOptionalProperties(value) as { forceReleaseAssignments?: boolean });
+
 export const statusChangeSchema: ZodType<StatusChangeRequest> = z
   .object({
     reason: optionalTrimmedString

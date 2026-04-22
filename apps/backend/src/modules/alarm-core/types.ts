@@ -132,6 +132,7 @@ export type AlarmCoreStore = {
   getClosureReasonById: (reasonId: string) => Promise<AlarmClosureReason | null>;
   getClosureReasonForCase: (alarmCaseId: string) => Promise<AlarmClosureReason | null>;
   countActiveAssignmentsForUser: (userId: string) => Promise<number>;
+  forceReleaseActiveAssignmentsForUser: (userId: string, releasedAt: string, reason?: string) => Promise<number>;
   hasSite: (id: string) => Promise<boolean>;
   hasDevice: (id: string) => Promise<boolean>;
   getCaseByExternalSourceRef: (externalSourceRef: string) => Promise<AlarmCaseEntity | null>;

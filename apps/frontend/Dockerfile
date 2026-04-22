@@ -23,6 +23,7 @@ RUN apk add --no-cache gettext
 
 COPY --from=build /app/apps/frontend/index.html /usr/share/nginx/html/index.html
 COPY --from=build /app/apps/frontend/src/styles.css /usr/share/nginx/html/src/styles.css
+COPY --from=build /app/apps/frontend/src/assets /usr/share/nginx/html/src/assets
 COPY --from=build /app/apps/frontend/config.template.js /opt/leitstelle/config.template.js
 COPY --from=build /app/apps/frontend/docker-entrypoint.sh /docker-entrypoint.d/40-leitstelle-config.sh
 COPY --from=build /app/apps/frontend/dist /usr/share/nginx/html/dist

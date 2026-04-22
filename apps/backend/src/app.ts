@@ -59,7 +59,10 @@ export async function createApp(config: BackendRuntimeConfig): Promise<App> {
   });
   const alarmCore = createAlarmCoreModule(database);
   const identity = await createIdentityModule(config, audit, logger, database, {
-    hasBlockingAssignments: async (userId) => (await alarmCore.countActiveAssignmentsForUser(userId)) > 0
+    hasBlockingAssignments: async (userId) => (await alarmCore.countActiveAssignmentsForUser(userId)) > 0,
+    forceReleaseAssignmentsForUser: async (userId, releasedAt, reason) => {
+      return await alarmCore.forceReleaseActiveAssignmentsForUser(userId, releasedAt, reason);
+    }
   });
   const masterData = createMasterDataModule(identity, audit, database);
   const alarmPipeline = createAlarmPipelineService({ identity, store: alarmCore, audit });

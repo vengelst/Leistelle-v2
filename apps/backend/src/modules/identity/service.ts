@@ -24,6 +24,7 @@ type CreateIdentityServiceInput = {
   sessions: IdentitySessionStore;
   users: IdentityUserStore;
   logoutGuard: LogoutGuard;
+  forceReleaseAssignmentsForUser?: (userId: string, releasedAt: string, reason?: string) => Promise<number>;
 };
 
 export function createIdentityService(input: CreateIdentityServiceInput): IdentityService {
@@ -336,9 +337,30 @@ export function createIdentityService(input: CreateIdentityServiceInput): Identi
 
       return input.users.toAuthenticatedUser(updated);
     },
-    async logout(token, requestId) {
+    async logout(token, requestId, options) {
       const session = await getAuthenticatedSession(token);
-      const logoutCheck = await input.logoutGuard.canLogout(session.user.id);
+      let logoutCheck = await input.logoutGuard.canLogout(session.user.id);
+
+      if (!logoutCheck.allowed) {
+        if (options?.forceReleaseAssignments === true && input.forceReleaseAssignmentsForUser) {
+          const releasedAt = new Date().toISOString();
+          const releasedCount = await input.forceReleaseAssignmentsForUser(session.user.id, releasedAt, "logout_force_release");
+          logoutCheck = await input.logoutGuard.canLogout(session.user.id);
+          await audit(
+            {
+              category: "identity.authentication",
+              action: "auth.logout.force_release_assignments",
+              outcome: logoutCheck.allowed ? "success" : "failure",
+              actorId: session.user.id,
+              subjectId: session.user.id,
+              metadata: {
+                releasedCount
+              }
+            },
+            requestId
+          );
+        }
+      }
 
       if (!logoutCheck.allowed) {
         await audit(

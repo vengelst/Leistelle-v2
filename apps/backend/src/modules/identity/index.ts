@@ -20,6 +20,7 @@ export async function createIdentityModule(
   database: DatabaseClient,
   options: {
     hasBlockingAssignments?: (userId: string) => Promise<boolean>;
+    forceReleaseAssignmentsForUser?: (userId: string, releasedAt: string, reason?: string) => Promise<number>;
   } = {}
 ) {
   const users = createIdentityUserStore(database);
@@ -35,6 +36,9 @@ export async function createIdentityModule(
     logger,
     users,
     sessions,
-    logoutGuard
+    logoutGuard,
+    ...(options.forceReleaseAssignmentsForUser
+      ? { forceReleaseAssignmentsForUser: options.forceReleaseAssignmentsForUser }
+      : {})
   });
 }

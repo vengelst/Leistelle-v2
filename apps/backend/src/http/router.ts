@@ -79,6 +79,7 @@ import {
   hikvisionIpCameraAlarmIngestionSchema,
   hikvisionNvrAlarmIngestionSchema,
   loginRequestSchema,
+  logoutRequestSchema,
   monitoringDisturbanceAcknowledgeSchema,
   monitoringDisturbanceNoteSchema,
   monitoringServiceCaseCreateSchema,
@@ -268,7 +269,10 @@ export async function resolveRoute(input: RouteInput): Promise<RouteResponse> {
 
   if (method === "POST" && url.pathname === "/api/v1/auth/logout") {
     const token = readBearerToken(input.req);
-    await input.identity.logout(token, input.context.requestId);
+    const logoutOptions = hasRequestBody(input.req)
+      ? await readValidatedJsonBody(input.req, logoutRequestSchema)
+      : {};
+    await input.identity.logout(token, input.context.requestId, logoutOptions);
 
     return response(input.context.requestId, { loggedOut: true });
   }
@@ -735,6 +739,15 @@ function readBearerToken(req: IncomingMessage): string {
   }
 
   return token;
+}
+
+function hasRequestBody(req: IncomingMessage): boolean {
+  const contentLength = req.headers["content-length"];
+  if (!contentLength) {
+    return false;
+  }
+  const parsed = Number(contentLength);
+  return Number.isFinite(parsed) && parsed > 0;
 }
 
 function readOptionalHeader(req: IncomingMessage, name: string): string | undefined {

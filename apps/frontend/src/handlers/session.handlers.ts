@@ -10,7 +10,7 @@ import {
   defaultOperatorLayoutDraftName,
   loadPersistedOperatorLayoutBundle
 } from "../operator-layout.js";
-import { apiRequest, storageKey } from "../api.js";
+import { ApiRequestError, apiRequest, storageKey } from "../api.js";
 import { resetSessionScopedState, state } from "../state.js";
 import type { WorkspaceRouter } from "../navigation/router.js";
 
@@ -89,15 +89,108 @@ export function createSessionHandlers(
       }
     },
     async handleLogout(): Promise<void> {
-      deps.setBusyState("logout", "Logout laeuft");
-      try {
-        await apiRequest<{ loggedOut: true }>("/api/v1/auth/logout", { method: "POST", body: JSON.stringify({}) });
+      const performLocalLogout = (message: string) => {
         localStorage.removeItem(storageKey);
         deps.resetAlarmSoundTracking();
         resetSessionScopedState();
         deps.router.navigateWorkspace("dashboard");
-        deps.setSuccess("Logout erfolgreich.");
+        if (window.location.hash !== "#dashboard") {
+          window.location.hash = "#dashboard";
+        }
+        deps.setSuccess(message);
+        deps.render();
+      };
+
+      const requestLogout = async (forceReleaseAssignments: boolean) => {
+        await apiRequest<{ loggedOut: true }>("/api/v1/auth/logout", {
+          method: "POST",
+          body: JSON.stringify(forceReleaseAssignments ? { forceReleaseAssignments: true } : {})
+        });
+      };
+
+      deps.setBusyState("logout", "Logout laeuft");
+      try {
+        let refreshedStatus = state.session?.user.status;
+        let refreshedUserId = state.session?.user.id;
+        try {
+          const sessionResponse = await apiRequest<{ session: SessionInfo }>("/api/v1/auth/session", { method: "GET" });
+          if (state.session && sessionResponse.session.user.id === state.session.user.id) {
+            state.session = sessionResponse.session;
+          }
+          refreshedStatus = sessionResponse.session.user.status;
+          refreshedUserId = sessionResponse.session.user.id;
+        } catch (sessionRefreshError) {
+          if (!(sessionRefreshError instanceof ApiRequestError && sessionRefreshError.status === 401)) {
+            throw sessionRefreshError;
+          }
+        }
+
+        const currentUserId = state.session?.user.id;
+        const effectiveUserId = refreshedUserId ?? currentUserId;
+        const hasActiveAssignmentInOverview = currentUserId
+          ? state.openAlarms.some((alarm) => alarm.activeAssignment?.userId === effectiveUserId)
+          : false;
+        const hasActiveAssignmentInDetail = currentUserId
+          ? Boolean(
+            state.selectedAlarmDetail?.assignments
+              ?.some((assignment) => assignment.userId === effectiveUserId && assignment.assignmentStatus === "active")
+          )
+          : false;
+        const shouldForceReleaseOnLogout = refreshedStatus === "assigned_to_alarm"
+          || hasActiveAssignmentInOverview
+          || hasActiveAssignmentInDetail;
+
+        if (shouldForceReleaseOnLogout) {
+          const confirmLogout = window.confirm(
+            "Es besteht noch eine aktive Alarmzuordnung. Moechtest du dich wirklich abmelden?"
+          );
+          if (!confirmLogout) {
+            deps.setFailure("Logout abgebrochen.");
+            return;
+          }
+
+          const confirmRelease = window.confirm(
+            "Soll die aktive Alarmzuordnung aufgehoben und danach abgemeldet werden?"
+          );
+          if (!confirmRelease) {
+            deps.setFailure("Logout abgebrochen, weil die Alarmzuordnung aktiv bleibt.");
+            return;
+          }
+
+          await requestLogout(true);
+          performLocalLogout("Logout erfolgreich. Aktive Alarmzuordnung wurde aufgehoben.");
+          return;
+        }
+
+        await requestLogout(false);
+        performLocalLogout("Logout erfolgreich.");
       } catch (error) {
+        if (error instanceof ApiRequestError && error.status === 409) {
+          const confirmLogout = window.confirm(
+            "Es besteht noch eine aktive Alarmzuordnung. Moechtest du dich wirklich abmelden?"
+          );
+          if (!confirmLogout) {
+            deps.setFailure("Logout abgebrochen.");
+            return;
+          }
+
+          const confirmRelease = window.confirm(
+            "Soll die aktive Alarmzuordnung aufgehoben und danach abgemeldet werden?"
+          );
+          if (!confirmRelease) {
+            deps.setFailure("Logout abgebrochen, weil die Alarmzuordnung aktiv bleibt.");
+            return;
+          }
+
+          await requestLogout(true);
+          performLocalLogout("Logout erfolgreich. Aktive Alarmzuordnung wurde aufgehoben.");
+          return;
+        }
+
+        if (error instanceof ApiRequestError && error.status === 401) {
+          performLocalLogout("Session war bereits ungueltig. Lokale Anmeldung wurde beendet.");
+          return;
+        }
         deps.setFailure(error instanceof Error ? error.message : "Logout fehlgeschlagen.");
       } finally {
         deps.setBusyState("logout", null);

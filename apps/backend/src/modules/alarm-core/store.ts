@@ -1333,6 +1333,37 @@ export function createAlarmCoreStore(database: DatabaseClient): AlarmCoreStore {
       );
       return Number(result.rows[0]?.total ?? "0");
     },
+    async forceReleaseActiveAssignmentsForUser(userId, releasedAt, reason) {
+      const result = await database.query<{ released_count: string }>(
+        `
+          with released_assignments as (
+            update alarm_assignments aa
+            set
+              assignment_status = 'released',
+              released_at = $2,
+              release_reason = $3,
+              updated_at = now()
+            where aa.user_id = $1
+              and aa.assignment_kind = 'owner'
+              and aa.assignment_status = 'active'
+            returning aa.alarm_case_id
+          ),
+          queued_cases as (
+            update alarm_cases ac
+            set
+              lifecycle_status = 'queued',
+              updated_at = now()
+            where ac.id in (select alarm_case_id from released_assignments)
+              and ac.lifecycle_status in ('reserved', 'in_progress')
+            returning ac.id
+          )
+          select count(*)::text as released_count
+          from released_assignments
+        `,
+        [userId, releasedAt, normalizeOptional(reason) ?? null]
+      );
+      return Number(result.rows[0]?.released_count ?? "0");
+    },
     async hasSite(id) {
       const result = await database.query<{ id: string }>("select id from sites where id = $1", [id]);
       return Boolean(result.rows[0]);

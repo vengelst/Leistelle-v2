@@ -273,7 +273,7 @@ export const state: FrontendState = {
   operatorLayoutDraftName: "",
   operatorLayoutEditorOpen: false,
   leitstelleNavigationCollapsed: false,
-  shellMenuPosition: "left",
+  shellMenuPosition: "top",
   themeMode: "light",
   loginMode: "password",
   kioskMode: false,
@@ -419,7 +419,7 @@ export function resetSessionScopedState(): void {
   state.operatorLayoutDraftName = "";
   state.operatorLayoutEditorOpen = false;
   state.leitstelleNavigationCollapsed = false;
-  state.shellMenuPosition = "left";
+  state.shellMenuPosition = "top";
   state.falseAlarmCloseMode = "confirm";
   state.alarmTableHoverDelayMs = 250;
   state.alarmPipelineTable = {
