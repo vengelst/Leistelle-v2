@@ -187,6 +187,65 @@ export function renderAlarmPipelineTableOnly(): string {
     }
   };
 
+  const buildHoverPayload = (alarm: (typeof alarms)[number], assignmentLabel: string) => {
+    const openedAt = alarm.firstOpenedAt ?? alarm.activeAssignment?.assignedAt;
+    const openedBy = alarm.activeAssignment?.displayName ?? "-";
+    const rows: Array<[string, string]> = [
+      ["Alarm-ID", alarm.id],
+      ["Titel", alarm.title],
+      ["Standort", alarm.siteName],
+      ["Kunde", alarm.customerName],
+      ["Alarmtyp", formatAlarmTypeLabel(alarm.alarmType)],
+      ["Prioritaet", alarm.priority],
+      ["Status", formatAlarmLifecycleLabel(alarm.lifecycleStatus)],
+      ["Bewertung", formatAlarmAssessmentLabel(alarm.assessmentStatus)],
+      ["Technik", formatAlarmTechnicalStateLabel(alarm.technicalState)],
+      ["Empfangen", formatTimestamp(alarm.receivedAt)],
+      ["Geoeffnet am", openedAt ? formatTimestamp(openedAt) : "-"],
+      ["Bearbeitet von", openedBy],
+      ["Bearbeitung", assignmentLabel],
+      ["Quelle", alarm.primaryDeviceName ?? "-"],
+      ["Externe Referenz", alarm.externalSourceRef ?? "-"],
+      ["Reaktionsfrist", formatResponseDueAtValue(alarm.responseDueAt)],
+      ["Wiedervorlage", formatFollowUpValue(alarm.followUpAt)],
+      ["Medien", String(alarm.mediaCount)],
+      ["Events", String(alarm.eventCount)],
+      ["Alarmalter", formatRelativeAge(alarm.receivedAt)]
+    ];
+    const html = rows
+      .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+      .join("");
+    return encodeURIComponent(html);
+  };
+
+  const buildHoverTitle = (alarm: (typeof alarms)[number], assignmentLabel: string) => {
+    const openedAt = alarm.firstOpenedAt ?? alarm.activeAssignment?.assignedAt;
+    const openedBy = alarm.activeAssignment?.displayName ?? "-";
+    const rows: Array<[string, string]> = [
+      ["Alarm-ID", alarm.id],
+      ["Titel", alarm.title],
+      ["Standort", alarm.siteName],
+      ["Kunde", alarm.customerName],
+      ["Alarmtyp", formatAlarmTypeLabel(alarm.alarmType)],
+      ["Prioritaet", alarm.priority],
+      ["Status", formatAlarmLifecycleLabel(alarm.lifecycleStatus)],
+      ["Bewertung", formatAlarmAssessmentLabel(alarm.assessmentStatus)],
+      ["Technik", formatAlarmTechnicalStateLabel(alarm.technicalState)],
+      ["Empfangen", formatTimestamp(alarm.receivedAt)],
+      ["Geoeffnet am", openedAt ? formatTimestamp(openedAt) : "-"],
+      ["Bearbeitet von", openedBy],
+      ["Bearbeitung", assignmentLabel],
+      ["Quelle", alarm.primaryDeviceName ?? "-"],
+      ["Externe Referenz", alarm.externalSourceRef ?? "-"],
+      ["Reaktionsfrist", formatResponseDueAtValue(alarm.responseDueAt)],
+      ["Wiedervorlage", formatFollowUpValue(alarm.followUpAt)],
+      ["Medien", String(alarm.mediaCount)],
+      ["Events", String(alarm.eventCount)],
+      ["Alarmalter", formatRelativeAge(alarm.receivedAt)]
+    ];
+    return rows.map(([label, value]) => `${label}: ${value}`).join("\n");
+  };
+
   return `
     <main class="alarm-pipeline-table-only" data-operator-keyboard-root="true">
       <section
@@ -256,6 +315,8 @@ export function renderAlarmPipelineTableOnly(): string {
                     class="alarm-pipeline-click-row ${isSelected ? "is-selected" : ""}"
                     data-alarm-case-id="${alarm.id}"
                     data-alarm-table-row
+                    data-alarm-hover-payload="${buildHoverPayload(alarm, assignmentLabel)}"
+                    title="${escapeHtml(buildHoverTitle(alarm, assignmentLabel))}"
                     tabindex="0"
                     aria-current="${isSelected ? "true" : "false"}"
                   >
@@ -288,6 +349,7 @@ export function renderAlarmPipelineTableOnly(): string {
         </article>
         <span class="alarm-pipeline-panel-resize-handle" data-alarm-layout-resize-handle data-panel-key="media" aria-hidden="true"></span>
       </section>
+      <aside id="alarm-row-hover-popup" class="alarm-row-hover-popup" hidden></aside>
     </main>
   `;
 }

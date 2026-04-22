@@ -768,6 +768,7 @@ function renderDeviceTypeSpecificFields(
         <label class="field"><span>Bereich / Zone</span><input name="zone" value="${escapeHtml(selectedDevice?.zone ?? "")}" /></label>
         <label class="field"><span>Blickrichtung</span><input name="viewingDirection" value="${escapeHtml(selectedDevice?.viewingDirection ?? "")}" /></label>
         <label class="field"><span>Montageort</span><input name="mountLocation" value="${escapeHtml(selectedDevice?.mountLocation ?? "")}" /></label>
+        <label class="field"><span>Livebild-URL</span><input name="liveViewUrl" value="${escapeHtml(selectedDevice?.liveViewUrl ?? "")}" placeholder="https://kamera/live oder WebRTC/HLS-URL" /></label>
         <label class="field"><span>Analytics-Name</span><input name="analyticsName" value="${escapeHtml(selectedDevice?.analyticsName ?? "")}" /></label>
         <label class="field"><span>Rule-Name</span><input name="ruleName" value="${escapeHtml(selectedDevice?.ruleName ?? "")}" /></label>
       </div>
@@ -1032,7 +1033,20 @@ function renderGeneralSettingsForms(overview: MasterDataOverview | null, canEdit
           <span>Fehlalarm-Klickverhalten</span>
           <select id="false-alarm-close-mode-select" name="falseAlarmCloseMode">${renderOptions(["confirm", "instant"], state.falseAlarmCloseMode)}</select>
         </label>
+        <label class="field">
+          <span>Alarm-Hover-Verzoegerung (ms)</span>
+          <input
+            id="alarm-table-hover-delay-input"
+            name="alarmTableHoverDelayMs"
+            type="number"
+            min="0"
+            max="5000"
+            step="50"
+            value="${state.alarmTableHoverDelayMs}"
+          />
+        </label>
         <p class="muted">Gilt fuer den Alarm-Eingangsscreen: Klick auf "Fehlalarm setzen und schliessen" entweder mit Rueckfrage oder direkt.</p>
+        <p class="muted">Die Hover-Verzoegerung steuert, nach wie vielen Millisekunden das Alarm-Info-Popup in der Tabelle erscheint.</p>
       </article>
       ${canEditSettings
         ? `

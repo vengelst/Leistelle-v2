@@ -43,15 +43,15 @@ test("settings workspace shows central overview for administrative subareas", ()
   assert.ok(html.includes("Standorte"));
 });
 
-test("primary navigation shows settings and separate sites entry", () => {
+test("primary navigation shows sites entry and settings shortcut", () => {
   resetSessionScopedState();
   state.session = createSession(["administrator"]);
   state.activeWorkspace = "dashboard";
 
   const html = renderApp();
 
-  assert.ok(html.includes('data-workspace-id="settings"'));
   assert.ok(html.includes('data-workspace-id="sites"'));
+  assert.ok(html.includes('id="open-settings-button"'));
 });
 
 test("shell can render primary navigation at top", () => {
@@ -236,6 +236,7 @@ test("settings navigation entry stays hidden for non administrative roles", () =
   const html = renderApp();
 
   assert.ok(!html.includes("data-workspace-id=\"settings\""));
+  assert.ok(!html.includes("id=\"open-settings-button\""));
 });
 
 test("dashboard hides archive jump for roles without archive access", () => {
@@ -300,6 +301,7 @@ test("kiosk toggle stores shell preference without second app", () => {
       alarmSoundEnabledStorageKey: "leitstelle.alarm.sound.enabled",
       alarmSoundIncludeNormalPriorityStorageKey: "leitstelle.alarm.sound.include-normal",
       falseAlarmCloseModeStorageKey: "leitstelle.alarm.false-close-mode",
+      alarmTableHoverDelayStorageKey: "leitstelle.alarm.table-hover-delay-ms",
       alarmPipelineTableStorageKey: "leitstelle.alarm.pipeline-table",
       alarmScreenLayoutStorageKey: "leitstelle.alarm.screen-layout",
       applyThemeMode: () => undefined,

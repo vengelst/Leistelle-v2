@@ -17,6 +17,7 @@ type SiteHandlerDeps = {
   handleMonitoringDetail: (disturbanceId: string) => Promise<void>;
   handleSitePlanSelect: (siteId: string, planId: string) => void;
   handleSitePlanMarkerSelect: (siteId: string, planId: string, markerId: string) => void;
+  handleSitePlanOpenCameraLive: (siteId: string, deviceId: string) => void;
   handleSitePlanZoom: (planId: string, direction: -1 | 1) => void;
   handleCustomerSubmit: (event: SubmitEvent) => Promise<void>;
   handleSiteSubmit: (event: SubmitEvent) => Promise<void>;
@@ -62,6 +63,7 @@ export function createSiteHandlers(
   | "handleMapOpenDisturbance"
   | "handleSitePlanSelect"
   | "handleSitePlanMarkerSelect"
+  | "handleSitePlanOpenCameraLive"
   | "handleSitePlanZoom"
   | "handleSitePlanOpenSiteDetails"
   | "handleSitePlanOpenAlarm"
@@ -299,6 +301,7 @@ export function createSiteHandlers(
     },
     handleSitePlanSelect: deps.handleSitePlanSelect,
     handleSitePlanMarkerSelect: deps.handleSitePlanMarkerSelect,
+    handleSitePlanOpenCameraLive: deps.handleSitePlanOpenCameraLive,
     handleSitePlanZoom: deps.handleSitePlanZoom,
     handleSitePlanOpenSiteDetails(siteId: string): void {
       if (!siteId) return;

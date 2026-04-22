@@ -10,7 +10,7 @@ import type { WorkspaceId } from "../state.js";
 import { hrefForLeitstelleMode } from "../navigation/routes.js";
 import { state } from "../state.js";
 import { shell } from "../shared/shell.js";
-import { formatUserStatusLabel, renderNotice, renderPill, renderSectionHeader, renderUserStatusBar } from "./common.js";
+import { formatUserStatusLabel, renderNotice, renderPill, renderUserStatusBar } from "./common.js";
 import { canAccessSettingsWorkspace, renderStandaloneLoginScreen } from "./auth.js";
 import { renderDashboardSection } from "./dashboard.js";
 import { renderReportingSection, renderArchiveSection } from "./reporting.js";
@@ -80,6 +80,7 @@ export function renderApp(): string {
   }
 
   const visibleWorkspaces = workspaces.filter((workspace) => workspace.id !== "settings" || canAccessSettingsWorkspace());
+  const navigationWorkspaces = visibleWorkspaces.filter((workspace) => workspace.id !== "settings");
   const activeWorkspace = visibleWorkspaces.find((workspace) => workspace.id === state.activeWorkspace) ?? visibleWorkspaces[0]!;
   const pendingOperations = Object.values(state.pendingOperations);
   const isLeitstelle = activeWorkspace.id === "leitstelle";
@@ -97,12 +98,22 @@ export function renderApp(): string {
             <h1>${shell.title}</h1>
           </div>
           <div class="hero-status">
-            ${renderPill(`Bereich ${activeWorkspace.title}`)}
             ${renderPill(state.session.user.displayName)}
             ${renderPill(`Status ${formatUserStatusLabel(state.session.user.status)}`)}
             ${state.kioskMode ? renderPill("Kiosk aktiv") : ""}
             ${pendingOperations.length > 0 ? renderPill(`Laedt ${pendingOperations.length}`) : ""}
             <button type="button" id="kiosk-toggle-button" class="secondary theme-toggle-button">${state.kioskMode ? "Kiosk verlassen" : "Kiosk aktivieren"}</button>
+            ${canAccessSettingsWorkspace()
+              ? `
+                <button
+                  type="button"
+                  id="open-settings-button"
+                  class="secondary theme-toggle-button icon-only-button"
+                  aria-label="Einstellungen oeffnen"
+                  title="Einstellungen"
+                >⚙</button>
+              `
+              : ""}
             <button
               type="button"
               id="theme-toggle-button"
@@ -118,17 +129,9 @@ export function renderApp(): string {
           : ""}
       </header>
       <section class="workspace-shell${isLeitstelle ? " leitstelle-workspace-shell" : ""}${isLeitstelleNavigationCollapsed ? " leitstelle-nav-collapsed" : ""}${isKiosk ? " kiosk-workspace-shell" : ""}${isTopNavigation ? " workspace-shell-topnav" : ""}">
-        ${isLeitstelleNavigationCollapsed && !isKiosk ? "" : renderWorkspaceNavigation(activeWorkspace, visibleWorkspaces, state.shellMenuPosition)}
+        ${isLeitstelleNavigationCollapsed && !isKiosk ? "" : renderWorkspaceNavigation(activeWorkspace, navigationWorkspaces, state.shellMenuPosition)}
         <section class="workspace-main${isLeitstelle ? " leitstelle-workspace-main" : ""}">
-          ${isLeitstelle ? renderLeitstelleToolbar() : `
-            <article class="workspace-summary card">
-              <p class="eyebrow">Aktiver Bereich</p>
-              ${renderSectionHeader(activeWorkspace.title, {
-                level: "h2",
-                subtitle: activeWorkspace.description
-              })}
-            </article>
-          `}
+          ${isLeitstelle ? renderLeitstelleToolbar() : ""}
           <section class="workspace-grid">
             ${renderWorkspaceContent(activeWorkspace)}
           </section>
@@ -136,6 +139,7 @@ export function renderApp(): string {
       </section>
       ${state.message ? renderNotice(state.message, "success") : ""}
       ${state.error ? renderNotice(state.error, "error") : ""}
+      <aside id="workspace-nav-hover-popup" class="alarm-row-hover-popup workspace-nav-hover-popup" hidden></aside>
     </main>
   `;
 }
@@ -176,6 +180,11 @@ function renderWorkspaceNavigation(
   visibleWorkspaces: WorkspaceDescriptor[],
   menuPosition: "left" | "top"
 ): string {
+  const escapeAttribute = (value: string): string => value
+    .replaceAll("&", "&amp;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
   return `
     <aside class="workspace-nav-card${menuPosition === "top" ? " workspace-nav-card-top" : ""}">
       <div class="workspace-nav-header">
@@ -190,9 +199,11 @@ function renderWorkspaceNavigation(
               type="button"
               class="workspace-nav-button${workspace.id === activeWorkspace.id ? " is-active" : ""}"
               data-workspace-id="${workspace.id}"
+              data-workspace-nav-hover="true"
+              data-hover-title="${escapeAttribute(workspace.title)}"
+              data-hover-text="${escapeAttribute(workspace.description)}"
             >
               <strong>${workspace.title}</strong>
-              <span>${workspace.description}</span>
             </button>
             ${workspace.id === "leitstelle"
               ? `

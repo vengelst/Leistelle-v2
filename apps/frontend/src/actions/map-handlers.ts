@@ -22,9 +22,40 @@ export function createMapHandlers(
   | "handleMapMarkerSelect"
   | "handleSitePlanSelect"
   | "handleSitePlanMarkerSelect"
+  | "handleSitePlanOpenCameraLive"
   | "handleSitePlanZoom"
   | "fetchSiteMarkers"
 > {
+  function openCameraLiveView(siteId: string, deviceId: string): boolean {
+    if (!siteId || !deviceId) {
+      return false;
+    }
+    const site = state.overview?.sites.find((entry) => entry.id === siteId);
+    const device = site?.devices.find((entry) => entry.id === deviceId);
+    const liveViewUrl = device?.liveViewUrl?.trim();
+    if (!liveViewUrl) {
+      state.error = `Fuer Kamera "${device?.name ?? deviceId}" ist keine Livebild-URL hinterlegt.`;
+      state.message = null;
+      deps.render();
+      return false;
+    }
+    const popup = window.open(
+      liveViewUrl,
+      `leitstelle-camera-live-${deviceId}`,
+      "popup=yes,width=1280,height=760,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes"
+    );
+    if (!popup) {
+      state.error = "Livebild-Popup wurde vom Browser blockiert.";
+      state.message = null;
+      deps.render();
+      return false;
+    }
+    popup.focus();
+    state.message = `Livebild geoeffnet: ${device?.name ?? deviceId}`;
+    state.error = null;
+    return true;
+  }
+
   async function handleMapFocusSite(siteId: string, scope: "both" | "alarms" | "monitoring"): Promise<void> {
     if (!siteId) return;
     state.selectedMapSiteId = siteId;
@@ -108,7 +139,19 @@ export function createMapHandlers(
         ...state.selectedSitePlanMarkerIds,
         [planId]: markerId
       };
+      const site = state.overview?.sites.find((entry) => entry.id === siteId);
+      const selectedPlan = site?.plans.find((entry) => entry.id === planId);
+      const selectedMarker = selectedPlan?.markers.find((entry) => entry.id === markerId);
+      if (selectedMarker?.markerType === "camera" && selectedMarker.deviceId) {
+        openCameraLiveView(siteId, selectedMarker.deviceId);
+      }
       deps.render();
+    },
+    handleSitePlanOpenCameraLive(siteId: string, deviceId: string): void {
+      const opened = openCameraLiveView(siteId, deviceId);
+      if (opened) {
+        deps.render();
+      }
     },
     handleSitePlanZoom(planId: string, direction: -1 | 1): void {
       if (!planId) return;

@@ -85,6 +85,7 @@ type DeviceRow = {
   status: SiteDevice["status"];
   is_active: boolean;
   network_address: string | null;
+  live_view_url: string | null;
   mac_address: string | null;
   external_device_id: string | null;
   linked_nvr_device_id: string | null;
@@ -417,11 +418,11 @@ export function createMasterDataStore(database: DatabaseClient): MasterDataStore
         `
           insert into devices(
             id, site_id, name, type, vendor, model, serial_number, status, is_active, network_address,
-            mac_address, external_device_id, linked_nvr_device_id, channel_number, zone, viewing_direction,
+            live_view_url, mac_address, external_device_id, linked_nvr_device_id, channel_number, zone, viewing_direction,
             mount_location, analytics_name, rule_name, storage_label, wan_ip, lan_ip, vpn_type,
             provider, sim_identifier, audio_zone, supports_paging
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
           on conflict (id) do update set
             site_id = excluded.site_id,
             name = excluded.name,
@@ -432,6 +433,7 @@ export function createMasterDataStore(database: DatabaseClient): MasterDataStore
             status = excluded.status,
             is_active = excluded.is_active,
             network_address = excluded.network_address,
+            live_view_url = excluded.live_view_url,
             mac_address = excluded.mac_address,
             external_device_id = excluded.external_device_id,
             linked_nvr_device_id = excluded.linked_nvr_device_id,
@@ -461,6 +463,7 @@ export function createMasterDataStore(database: DatabaseClient): MasterDataStore
           input.status,
           input.isActive,
           normalizeOptional(input.networkAddress) ?? null,
+          normalizeOptional(input.liveViewUrl) ?? null,
           normalizeOptional(input.macAddress) ?? null,
           normalizeOptional(input.externalDeviceId) ?? null,
           normalizeOptional(input.linkedNvrDeviceId) ?? null,
@@ -727,6 +730,9 @@ function toDeviceRecord(device: DeviceRow, credentials: CredentialRow[], roles: 
   if (device.network_address) {
     result.networkAddress = device.network_address;
   }
+  if (device.live_view_url) {
+    result.liveViewUrl = device.live_view_url;
+  }
   if (device.mac_address) {
     result.macAddress = device.mac_address;
   }
@@ -917,7 +923,7 @@ async function loadDevices(database: DatabaseClient): Promise<DeviceRow[]> {
   const result = await database.query<DeviceRow>(
     `
       select
-        id, site_id, name, type, vendor, model, serial_number, status, is_active, network_address, mac_address,
+        id, site_id, name, type, vendor, model, serial_number, status, is_active, network_address, live_view_url, mac_address,
         external_device_id, linked_nvr_device_id, channel_number, zone, viewing_direction, mount_location,
         analytics_name, rule_name, storage_label, wan_ip, lan_ip, vpn_type, provider, sim_identifier,
         audio_zone, supports_paging
@@ -1099,7 +1105,7 @@ async function findDeviceEntity(database: DatabaseClient, deviceId: string): Pro
   const result = await database.query<DeviceRow>(
     `
       select
-        id, site_id, name, type, vendor, model, serial_number, status, is_active, network_address, mac_address,
+        id, site_id, name, type, vendor, model, serial_number, status, is_active, network_address, live_view_url, mac_address,
         external_device_id, linked_nvr_device_id, channel_number, zone, viewing_direction, mount_location,
         analytics_name, rule_name, storage_label, wan_ip, lan_ip, vpn_type, provider, sim_identifier,
         audio_zone, supports_paging
@@ -1138,6 +1144,9 @@ async function findDeviceEntity(database: DatabaseClient, deviceId: string): Pro
   }
   if (row.network_address) {
     entity.networkAddress = row.network_address;
+  }
+  if (row.live_view_url) {
+    entity.liveViewUrl = row.live_view_url;
   }
   if (row.mac_address) {
     entity.macAddress = row.mac_address;

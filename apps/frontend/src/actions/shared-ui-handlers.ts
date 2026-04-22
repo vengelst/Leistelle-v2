@@ -24,6 +24,7 @@ type SharedUiHandlerDeps = {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
   falseAlarmCloseModeStorageKey: string;
+  alarmTableHoverDelayStorageKey: string;
   alarmPipelineTableStorageKey: string;
   alarmScreenLayoutStorageKey: string;
   applyThemeMode: () => void;
@@ -49,6 +50,7 @@ export function createSharedUiHandlers(
   | "toggleKiosk"
   | "setShellMenuPosition"
   | "setFalseAlarmCloseMode"
+  | "setAlarmTableHoverDelayMs"
   | "setAlarmPipelineTableColumnVisible"
   | "setAlarmPipelineTableColumnWidth"
   | "setAlarmPipelineTablePanelWidth"
@@ -75,7 +77,7 @@ export function createSharedUiHandlers(
         state.selectedSettingsSection = "overview";
       }
       if (workspaceId === "leitstelle") {
-        deps.router.navigateLeitstelleMode("alarms");
+        deps.router.navigateLeitstelleMode("overview");
         deps.render();
         return;
       }
@@ -142,6 +144,12 @@ export function createSharedUiHandlers(
     setFalseAlarmCloseMode(mode: string): void {
       state.falseAlarmCloseMode = mode === "instant" ? "instant" : "confirm";
       window.localStorage.setItem(deps.falseAlarmCloseModeStorageKey, state.falseAlarmCloseMode);
+      deps.render();
+    },
+    setAlarmTableHoverDelayMs(value: number): void {
+      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(5000, Math.round(value))) : 0;
+      state.alarmTableHoverDelayMs = normalized;
+      window.localStorage.setItem(deps.alarmTableHoverDelayStorageKey, String(normalized));
       deps.render();
     },
     setAlarmPipelineTableColumnVisible(column: string, visible: boolean): void {

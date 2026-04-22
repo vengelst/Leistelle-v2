@@ -61,6 +61,7 @@ test("edit handler switches from overview to master-data editor", () => {
       handleMonitoringDetail: async () => undefined,
       handleSitePlanSelect: () => undefined,
       handleSitePlanMarkerSelect: () => undefined,
+      handleSitePlanOpenCameraLive: () => undefined,
       handleSitePlanZoom: () => undefined,
       handleCustomerSubmit: async () => undefined,
       handleSiteSubmit: async () => undefined,

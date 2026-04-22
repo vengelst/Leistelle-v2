@@ -357,6 +357,7 @@ export function createMasterDataHandlers(
       const model = normalizeOptionalField(formData.get("model"));
       const serialNumber = normalizeOptionalField(formData.get("serialNumber"));
       const networkAddress = normalizeOptionalField(formData.get("networkAddress"));
+      const liveViewUrl = normalizeOptionalField(formData.get("liveViewUrl"));
       const macAddress = normalizeOptionalField(formData.get("macAddress"));
       const externalDeviceId = normalizeOptionalField(formData.get("externalDeviceId"));
       const linkedNvrDeviceId = normalizeOptionalField(formData.get("linkedNvrDeviceId"));
@@ -385,6 +386,7 @@ export function createMasterDataHandlers(
         status: readSelectValue(formData, "status", ["planned", "installed", "retired"] as const),
         isActive: String(formData.get("isActive") ?? "true") === "true",
         ...(networkAddress ? { networkAddress } : {}),
+        ...(liveViewUrl ? { liveViewUrl } : {}),
         ...(macAddress ? { macAddress } : {}),
         ...(externalDeviceId ? { externalDeviceId } : {}),
         ...(linkedNvrDeviceId ? { linkedNvrDeviceId } : {}),

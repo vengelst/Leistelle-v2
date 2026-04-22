@@ -106,6 +106,7 @@ export type SiteDevice = {
   status: "planned" | "installed" | "retired";
   isActive: boolean;
   networkAddress?: string;
+  liveViewUrl?: string;
   macAddress?: string;
   externalDeviceId?: string;
   linkedNvrDeviceId?: string;
@@ -235,6 +236,7 @@ export type DeviceUpsertInput = {
   status: "planned" | "installed" | "retired";
   isActive: boolean;
   networkAddress?: string;
+  liveViewUrl?: string;
   macAddress?: string;
   externalDeviceId?: string;
   linkedNvrDeviceId?: string;

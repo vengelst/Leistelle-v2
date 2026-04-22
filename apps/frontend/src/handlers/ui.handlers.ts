@@ -18,6 +18,7 @@ type UiHandlerDeps = HandlerRuntime & {
   alarmSoundEnabledStorageKey: string;
   alarmSoundIncludeNormalPriorityStorageKey: string;
   falseAlarmCloseModeStorageKey: string;
+  alarmTableHoverDelayStorageKey: string;
   alarmPipelineTableStorageKey: string;
   alarmScreenLayoutStorageKey: string;
   applyThemeMode: () => void;
@@ -43,6 +44,7 @@ export function createUiHandlers(
   | "toggleKiosk"
   | "setShellMenuPosition"
   | "setFalseAlarmCloseMode"
+  | "setAlarmTableHoverDelayMs"
   | "setAlarmPipelineTableColumnVisible"
   | "setAlarmPipelineTableColumnWidth"
   | "setAlarmPipelineTablePanelWidth"

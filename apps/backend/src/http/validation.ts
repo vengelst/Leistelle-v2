@@ -200,6 +200,7 @@ export const deviceUpsertSchema: ZodType<DeviceUpsertInput> = z
     status: z.enum(["planned", "installed", "retired"]),
     isActive: z.boolean(),
     networkAddress: optionalTrimmedString,
+    liveViewUrl: optionalTrimmedString,
     macAddress: optionalTrimmedString,
     externalDeviceId: optionalTrimmedString,
     linkedNvrDeviceId: optionalTrimmedString,

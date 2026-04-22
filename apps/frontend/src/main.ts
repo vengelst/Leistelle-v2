@@ -40,6 +40,7 @@ const themeStorageKey = "leitstelle.theme.mode";
 const kioskStorageKey = "leitstelle.ui.kiosk";
 const shellMenuPositionStorageKey = "leitstelle.ui.shell-menu-position";
 const falseAlarmCloseModeStorageKey = "leitstelle.alarm.false-close-mode";
+const alarmTableHoverDelayStorageKey = "leitstelle.alarm.table-hover-delay-ms";
 const alarmPipelineTableStorageKey = "leitstelle.alarm.pipeline-table";
 const alarmScreenLayoutStorageKey = "leitstelle.alarm.screen-layout";
 const alarmSoundEnabledStorageKey = "leitstelle.alarm.sound.enabled";
@@ -60,6 +61,7 @@ initializeThemeMode();
 initializeKioskMode();
 initializeShellMenuPosition();
 initializeFalseAlarmCloseMode();
+initializeAlarmTableHoverDelay();
 initializeAlarmPipelineTableConfig();
 initializeAlarmSoundPreferences();
 
@@ -88,6 +90,7 @@ const uiHandlers = createUiHandlers({
   alarmSoundEnabledStorageKey,
   alarmSoundIncludeNormalPriorityStorageKey,
   falseAlarmCloseModeStorageKey,
+  alarmTableHoverDelayStorageKey,
   alarmPipelineTableStorageKey,
   alarmScreenLayoutStorageKey,
   applyThemeMode,
@@ -164,6 +167,7 @@ const siteHandlers = createSiteHandlers({
   handleMonitoringDetail: disturbanceHandlers.handleMonitoringDetail,
   handleSitePlanSelect: mapActions.handleSitePlanSelect,
   handleSitePlanMarkerSelect: mapActions.handleSitePlanMarkerSelect,
+  handleSitePlanOpenCameraLive: mapActions.handleSitePlanOpenCameraLive,
   handleSitePlanZoom: mapActions.handleSitePlanZoom,
   handleCustomerSubmit: masterDataActions.handleCustomerSubmit,
   handleSiteSubmit: masterDataActions.handleSiteSubmit,
@@ -369,6 +373,18 @@ function initializeFalseAlarmCloseMode(): void {
   if (storedMode === "instant" || storedMode === "confirm") {
     state.falseAlarmCloseMode = storedMode;
   }
+}
+
+function initializeAlarmTableHoverDelay(): void {
+  const storedValue = window.localStorage.getItem(alarmTableHoverDelayStorageKey);
+  if (!storedValue) {
+    return;
+  }
+  const parsed = Number(storedValue);
+  if (!Number.isFinite(parsed)) {
+    return;
+  }
+  state.alarmTableHoverDelayMs = Math.max(0, Math.min(5000, Math.round(parsed)));
 }
 
 function initializeAlarmPipelineTableConfig(): void {

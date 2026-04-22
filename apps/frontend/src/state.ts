@@ -174,6 +174,7 @@ export type FrontendState = {
   alarmSoundIncludeNormalPriority: boolean;
   alarmSoundPermissionState: AlarmSoundPermissionState;
   falseAlarmCloseMode: FalseAlarmCloseMode;
+  alarmTableHoverDelayMs: number;
   alarmPipelineTable: AlarmPipelineTableConfig;
   alarmScreenLayout: AlarmScreenLayout;
   selectedSettingsSection: SettingsSection;
@@ -280,6 +281,7 @@ export const state: FrontendState = {
   alarmSoundIncludeNormalPriority: false,
   alarmSoundPermissionState: "unknown",
   falseAlarmCloseMode: "confirm",
+  alarmTableHoverDelayMs: 250,
   alarmPipelineTable: {
     panelWidthPercent: 58,
     visibleColumns: {
@@ -419,6 +421,7 @@ export function resetSessionScopedState(): void {
   state.leitstelleNavigationCollapsed = false;
   state.shellMenuPosition = "left";
   state.falseAlarmCloseMode = "confirm";
+  state.alarmTableHoverDelayMs = 250;
   state.alarmPipelineTable = {
     panelWidthPercent: 58,
     visibleColumns: {

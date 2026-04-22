@@ -898,7 +898,7 @@ export function renderSitePlanWorkspace(siteId: string, context: "site" | "alarm
   const assetUrl = resolveSitePlanAssetUrl(selectedPlan);
 
   return `
-    <div class="stack compact plan-workspace">
+    <div class="stack compact plan-workspace${context === "alarm" ? " plan-workspace-alarm" : ""}">
       <div class="actions">
         ${site.plans.map((plan) => `
           <button
@@ -953,6 +953,7 @@ function renderSitePlanMarker(
   highlightedDeviceId?: string
 ): string {
   const device = marker.deviceId ? site.devices.find((entry) => entry.id === marker.deviceId) : undefined;
+  const hasLiveView = Boolean(device?.liveViewUrl?.trim());
   const isSelected = marker.id === selectedMarkerId;
   const isHighlighted = Boolean(highlightedDeviceId && marker.deviceId === highlightedDeviceId);
   const left = clamp(marker.x, 0, 100);
@@ -961,16 +962,20 @@ function renderSitePlanMarker(
   return `
     <button
       type="button"
-      class="site-plan-marker marker-type-${marker.markerType}${isSelected ? " selected" : ""}${isHighlighted ? " highlighted" : ""}${device ? " is-actionable" : ""}"
+      class="site-plan-marker marker-type-${marker.markerType}${isSelected ? " selected" : ""}${isHighlighted ? " highlighted" : ""}${device ? " is-actionable" : ""}${hasLiveView ? " has-live-view" : device ? " missing-live-view" : ""}"
       style="left:${left}%;top:${top}%"
-      title="${marker.label}${device ? ` | ${device.name}` : " | ohne Geraetezuordnung"}${isHighlighted ? " | aktueller Bezug" : ""}"
+      title="${marker.label}${device ? ` | ${device.name}` : " | ohne Geraetezuordnung"}${isHighlighted ? " | aktueller Bezug" : ""}${device ? hasLiveView ? " | Livebild verfuegbar" : " | Livebild-URL fehlt" : ""}"
       aria-label="${plan.name}: ${marker.label}"
       data-site-id="${site.id}"
       data-plan-id="${plan.id}"
       data-marker-id="${marker.id}"
+      data-device-id="${device?.id ?? ""}"
     >
       <span class="site-plan-marker-core"></span>
-      <span class="site-plan-marker-label">${marker.label}${device ? ` | ${device.name}` : ""}</span>
+      <span class="site-plan-marker-label">
+        ${marker.label}${device ? ` | ${device.name}` : ""}
+        ${device ? `<span class="site-plan-live-indicator ${hasLiveView ? "is-available" : "is-missing"}">${hasLiveView ? "Livebild" : "kein Livebild"}</span>` : ""}
+      </span>
     </button>
   `;
 }
@@ -1062,6 +1067,7 @@ function renderSelectedSitePlanMarkerContext(
         <div><dt>Geraet</dt><dd>${selectedDevice ? selectedDevice.name : selectedMarker.deviceId ?? "-"}</dd></div>
         <div><dt>Geraete-Status</dt><dd>${selectedDevice ? selectedDevice.status : "nicht zugeordnet"}</dd></div>
         <div><dt>Netzwerk</dt><dd>${selectedDevice?.networkAddress ?? "-"}</dd></div>
+        <div><dt>Livebild</dt><dd>${selectedDevice ? selectedDevice.liveViewUrl ? "URL gesetzt" : "URL fehlt" : "-"}</dd></div>
       </dl>
       ${selectedMarker.deviceId && !selectedDevice
         ? renderNotice("Die Marker-Zuordnung verweist auf ein Geraet, das im aktuellen Standortkontext nicht mehr vorhanden ist.", "error")
@@ -1072,6 +1078,9 @@ function renderSelectedSitePlanMarkerContext(
         ${context !== "site" ? `<button type="button" class="secondary site-plan-open-site-details-button" data-site-id="${site.id}">Standortdetails</button>` : ""}
         ${firstAlarm ? `<button type="button" class="secondary site-plan-open-alarm-button" data-alarm-case-id="${firstAlarm.id}">Alarmkontext oeffnen</button>` : ""}
         ${firstDisturbance ? `<button type="button" class="secondary site-plan-open-disturbance-button" data-disturbance-id="${firstDisturbance.id}">Stoerungsdetail oeffnen</button>` : ""}
+        ${selectedDevice && isCameraDeviceType(selectedDevice.type)
+          ? `<button type="button" class="secondary site-plan-open-live-button" data-site-id="${site.id}" data-device-id="${selectedDevice.id}">Livebild oeffnen</button>`
+          : ""}
       </div>
       ${selectedMarker.deviceId && !firstAlarm && !firstDisturbance
         ? `<p class="muted">Fuer dieses zugeordnete Geraet liegt aktuell kein offener Alarm- oder Stoerungskontext vor.</p>`
@@ -1080,6 +1089,10 @@ function renderSelectedSitePlanMarkerContext(
           : ""}
     </article>
   `;
+}
+
+function isCameraDeviceType(type: string): boolean {
+  return type === "camera" || type === "dome_ptz_camera" || type === "bi_spectral_camera";
 }
 
 export function projectMarkerPosition(latitude: number, longitude: number): { left: number; top: number } {

@@ -19,6 +19,7 @@ export type AppHandlers = {
   toggleKiosk: () => void;
   setShellMenuPosition: (position: string) => void;
   setFalseAlarmCloseMode: (mode: string) => void;
+  setAlarmTableHoverDelayMs: (value: number) => void;
   setAlarmPipelineTableColumnVisible: (column: string, visible: boolean) => void;
   setAlarmPipelineTableColumnWidth: (column: string, width: number) => void;
   setAlarmPipelineTablePanelWidth: (width: number) => void;
@@ -134,6 +135,7 @@ export type AppHandlers = {
   scrollToRegion: (regionId: UiShellDescriptor["regions"][number]["id"]) => void;
   handleSitePlanSelect: (siteId: string, planId: string) => void;
   handleSitePlanMarkerSelect: (siteId: string, planId: string, markerId: string) => void;
+  handleSitePlanOpenCameraLive: (siteId: string, deviceId: string) => void;
   handleSitePlanZoom: (planId: string, direction: -1 | 1) => void;
   handleSitePlanOpenSiteDetails: (siteId: string) => void;
   handleSitePlanOpenAlarm: (alarmCaseId: string) => Promise<void>;
@@ -154,6 +156,14 @@ let activeDeviceModalBackdrop: {
 
 let activeDeviceModalEscapeListener: ((event: KeyboardEvent) => void) | null = null;
 let activeOperatorKeyboardListener: ((event: KeyboardEvent) => void) | null = null;
+let activeAlarmRowHoverScrollListener: ((event: Event) => void) | null = null;
+let activeAlarmRowHoverMouseOverListener: ((event: Event) => void) | null = null;
+let activeAlarmRowHoverMouseMoveListener: ((event: Event) => void) | null = null;
+let activeAlarmRowHoverMouseOutListener: ((event: Event) => void) | null = null;
+let activeWorkspaceNavHoverMouseOverListener: ((event: Event) => void) | null = null;
+let activeWorkspaceNavHoverMouseMoveListener: ((event: Event) => void) | null = null;
+let activeWorkspaceNavHoverMouseOutListener: ((event: Event) => void) | null = null;
+let activeWorkspaceNavHoverScrollListener: ((event: Event) => void) | null = null;
 type OperatorFocusRequest =
   | { zone: "list" | "detail" | "actions" }
   | { zone: "list-entry"; alarmCaseId: string };
@@ -475,6 +485,254 @@ function escapeSelectorValue(value: string): string {
   return typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape(value) : value.replace(/"/g, '\\"');
 }
 
+function bindAlarmRowHoverPreview(): void {
+  const popup = document.querySelector<HTMLElement>("#alarm-row-hover-popup");
+  if (activeAlarmRowHoverScrollListener) {
+    document.removeEventListener("scroll", activeAlarmRowHoverScrollListener, true);
+    activeAlarmRowHoverScrollListener = null;
+  }
+  if (activeAlarmRowHoverMouseOverListener) {
+    document.removeEventListener("mouseover", activeAlarmRowHoverMouseOverListener, true);
+    activeAlarmRowHoverMouseOverListener = null;
+  }
+  if (activeAlarmRowHoverMouseMoveListener) {
+    document.removeEventListener("mousemove", activeAlarmRowHoverMouseMoveListener, true);
+    activeAlarmRowHoverMouseMoveListener = null;
+  }
+  if (activeAlarmRowHoverMouseOutListener) {
+    document.removeEventListener("mouseout", activeAlarmRowHoverMouseOutListener, true);
+    activeAlarmRowHoverMouseOutListener = null;
+  }
+  if (!popup) {
+    return;
+  }
+
+  let activeRow: HTMLTableRowElement | null = null;
+  let hoverDelayTimer: number | null = null;
+
+  const hidePopup = () => {
+    if (hoverDelayTimer !== null) {
+      window.clearTimeout(hoverDelayTimer);
+      hoverDelayTimer = null;
+    }
+    popup.hidden = true;
+    popup.innerHTML = "";
+    activeRow = null;
+  };
+
+  const movePopup = (event: MouseEvent) => {
+    if (popup.hidden) {
+      return;
+    }
+    const offsetX = 18;
+    const offsetY = 16;
+    const maxLeft = Math.max(8, window.innerWidth - popup.offsetWidth - 8);
+    const maxTop = Math.max(8, window.innerHeight - popup.offsetHeight - 8);
+    const left = Math.min(maxLeft, Math.max(8, event.clientX + offsetX));
+    const top = Math.min(maxTop, Math.max(8, event.clientY + offsetY));
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  };
+
+  const onMouseOver = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const row = target.closest<HTMLTableRowElement>("[data-alarm-table-row]");
+    if (!row) {
+      return;
+    }
+    if (activeRow === row && !popup.hidden) {
+      return;
+    }
+    const titleContent = row.getAttribute("title")?.trim();
+    if (!titleContent) {
+      hidePopup();
+      return;
+    }
+    const entries = titleContent
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const separator = line.indexOf(":");
+        if (separator < 0) {
+          return `<div><dt>Info</dt><dd>${line}</dd></div>`;
+        }
+        const label = line.slice(0, separator).trim();
+        const value = line.slice(separator + 1).trim();
+        return `<div><dt>${label}</dt><dd>${value || "-"}</dd></div>`;
+      })
+      .join("");
+    if (hoverDelayTimer !== null) {
+      window.clearTimeout(hoverDelayTimer);
+      hoverDelayTimer = null;
+    }
+    activeRow = row;
+    const hoverEvent = event as MouseEvent;
+    const delayMs = Math.max(0, Math.min(5000, Math.round(state.alarmTableHoverDelayMs)));
+    hoverDelayTimer = window.setTimeout(() => {
+      popup.innerHTML = `<h4>Alarmdetails</h4><dl>${entries}</dl>`;
+      popup.hidden = false;
+      movePopup(hoverEvent);
+      hoverDelayTimer = null;
+    }, delayMs);
+  };
+
+  const onMouseMove = (event: Event) => {
+    if (!(event instanceof MouseEvent) || popup.hidden || !activeRow) {
+      return;
+    }
+    movePopup(event);
+  };
+
+  const onMouseOut = (event: Event) => {
+    if (!activeRow) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      hidePopup();
+      return;
+    }
+    const row = target.closest<HTMLTableRowElement>("[data-alarm-table-row]");
+    if (row !== activeRow) {
+      return;
+    }
+    const related = event instanceof MouseEvent ? event.relatedTarget : null;
+    if (related instanceof Element && related.closest("[data-alarm-table-row]") === activeRow) {
+      return;
+    }
+    hidePopup();
+  };
+
+  const onScroll = () => hidePopup();
+  document.addEventListener("mouseover", onMouseOver, true);
+  document.addEventListener("mousemove", onMouseMove, true);
+  document.addEventListener("mouseout", onMouseOut, true);
+  document.addEventListener("scroll", onScroll, true);
+  activeAlarmRowHoverMouseOverListener = onMouseOver;
+  activeAlarmRowHoverMouseMoveListener = onMouseMove;
+  activeAlarmRowHoverMouseOutListener = onMouseOut;
+  activeAlarmRowHoverScrollListener = onScroll;
+}
+
+function bindWorkspaceNavHoverPreview(): void {
+  const popup = document.querySelector<HTMLElement>("#workspace-nav-hover-popup");
+  if (activeWorkspaceNavHoverScrollListener) {
+    document.removeEventListener("scroll", activeWorkspaceNavHoverScrollListener, true);
+    activeWorkspaceNavHoverScrollListener = null;
+  }
+  if (activeWorkspaceNavHoverMouseOverListener) {
+    document.removeEventListener("mouseover", activeWorkspaceNavHoverMouseOverListener, true);
+    activeWorkspaceNavHoverMouseOverListener = null;
+  }
+  if (activeWorkspaceNavHoverMouseMoveListener) {
+    document.removeEventListener("mousemove", activeWorkspaceNavHoverMouseMoveListener, true);
+    activeWorkspaceNavHoverMouseMoveListener = null;
+  }
+  if (activeWorkspaceNavHoverMouseOutListener) {
+    document.removeEventListener("mouseout", activeWorkspaceNavHoverMouseOutListener, true);
+    activeWorkspaceNavHoverMouseOutListener = null;
+  }
+  if (!popup) {
+    return;
+  }
+
+  let activeButton: HTMLButtonElement | null = null;
+  let hoverDelayTimer: number | null = null;
+
+  const hidePopup = () => {
+    if (hoverDelayTimer !== null) {
+      window.clearTimeout(hoverDelayTimer);
+      hoverDelayTimer = null;
+    }
+    popup.hidden = true;
+    popup.innerHTML = "";
+    activeButton = null;
+  };
+
+  const movePopup = (event: MouseEvent) => {
+    if (popup.hidden) {
+      return;
+    }
+    const offsetX = 16;
+    const offsetY = 14;
+    const maxLeft = Math.max(8, window.innerWidth - popup.offsetWidth - 8);
+    const maxTop = Math.max(8, window.innerHeight - popup.offsetHeight - 8);
+    popup.style.left = `${Math.min(maxLeft, Math.max(8, event.clientX + offsetX))}px`;
+    popup.style.top = `${Math.min(maxTop, Math.max(8, event.clientY + offsetY))}px`;
+  };
+
+  const onMouseOver = (event: Event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const button = target.closest<HTMLButtonElement>("[data-workspace-nav-hover=\"true\"]");
+    if (!button) {
+      return;
+    }
+    const title = (button.dataset.hoverTitle ?? "").trim();
+    const text = (button.dataset.hoverText ?? "").trim();
+    if (!title || !text) {
+      hidePopup();
+      return;
+    }
+    if (hoverDelayTimer !== null) {
+      window.clearTimeout(hoverDelayTimer);
+      hoverDelayTimer = null;
+    }
+    activeButton = button;
+    const hoverEvent = event as MouseEvent;
+    const delayMs = Math.max(0, Math.min(5000, Math.round(state.alarmTableHoverDelayMs)));
+    hoverDelayTimer = window.setTimeout(() => {
+      popup.innerHTML = `<h4>${title}</h4><p>${text}</p>`;
+      popup.hidden = false;
+      movePopup(hoverEvent);
+      hoverDelayTimer = null;
+    }, delayMs);
+  };
+
+  const onMouseMove = (event: Event) => {
+    if (!(event instanceof MouseEvent) || popup.hidden || !activeButton) {
+      return;
+    }
+    movePopup(event);
+  };
+
+  const onMouseOut = (event: Event) => {
+    if (!activeButton) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      hidePopup();
+      return;
+    }
+    const button = target.closest<HTMLButtonElement>("[data-workspace-nav-hover=\"true\"]");
+    if (button !== activeButton) {
+      return;
+    }
+    const related = event instanceof MouseEvent ? event.relatedTarget : null;
+    if (related instanceof Element && related.closest("[data-workspace-nav-hover=\"true\"]") === activeButton) {
+      return;
+    }
+    hidePopup();
+  };
+
+  const onScroll = () => hidePopup();
+  document.addEventListener("mouseover", onMouseOver, true);
+  document.addEventListener("mousemove", onMouseMove, true);
+  document.addEventListener("mouseout", onMouseOut, true);
+  document.addEventListener("scroll", onScroll, true);
+  activeWorkspaceNavHoverMouseOverListener = onMouseOver;
+  activeWorkspaceNavHoverMouseMoveListener = onMouseMove;
+  activeWorkspaceNavHoverMouseOutListener = onMouseOut;
+  activeWorkspaceNavHoverScrollListener = onScroll;
+}
+
 export function bindAppEvents(handlers: AppHandlers): void {
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".workspace-nav-button"))) {
     button.addEventListener("click", () => handlers.navigateWorkspace(button.dataset.workspaceId ?? "dashboard"));
@@ -517,12 +775,16 @@ export function bindAppEvents(handlers: AppHandlers): void {
   });
   document.querySelector<HTMLFormElement>("#operator-layout-save-form")?.addEventListener("submit", handlers.saveOperatorLayoutProfile);
   document.querySelector<HTMLButtonElement>("#theme-toggle-button")?.addEventListener("click", () => handlers.toggleTheme());
+  document.querySelector<HTMLButtonElement>("#open-settings-button")?.addEventListener("click", () => handlers.navigateWorkspace("settings"));
   document.querySelector<HTMLButtonElement>("#kiosk-toggle-button")?.addEventListener("click", () => handlers.toggleKiosk());
   document.querySelector<HTMLSelectElement>("#shell-menu-position-select")?.addEventListener("change", (event) => {
     handlers.setShellMenuPosition((event.currentTarget as HTMLSelectElement).value);
   });
   document.querySelector<HTMLSelectElement>("#false-alarm-close-mode-select")?.addEventListener("change", (event) => {
     handlers.setFalseAlarmCloseMode((event.currentTarget as HTMLSelectElement).value);
+  });
+  document.querySelector<HTMLInputElement>("#alarm-table-hover-delay-input")?.addEventListener("input", (event) => {
+    handlers.setAlarmTableHoverDelayMs(Number((event.currentTarget as HTMLInputElement).value));
   });
   for (const input of Array.from(document.querySelectorAll<HTMLInputElement>("[data-alarm-table-column-visible]"))) {
     input.addEventListener("change", () => {
@@ -539,6 +801,8 @@ export function bindAppEvents(handlers: AppHandlers): void {
   });
   bindAlarmTableColumnResizeHandles(handlers);
   bindAlarmScreenPanelInteractions(handlers);
+  bindAlarmRowHoverPreview();
+  bindWorkspaceNavHoverPreview();
   document.querySelector<HTMLButtonElement>("#alarm-sound-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSound());
   document.querySelector<HTMLButtonElement>("#alarm-sound-normal-toggle-button")?.addEventListener("click", () => handlers.toggleAlarmSoundIncludeNormalPriority());
   document.querySelector<HTMLButtonElement>("#alarm-sound-test-button")?.addEventListener("click", () => void handlers.testAlarmSound());
@@ -837,6 +1101,9 @@ export function bindAppEvents(handlers: AppHandlers): void {
   }
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".site-plan-open-disturbance-button"))) {
     button.addEventListener("click", () => void handlers.handleSitePlanOpenDisturbance(button.dataset.disturbanceId ?? ""));
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".site-plan-open-live-button"))) {
+    button.addEventListener("click", () => handlers.handleSitePlanOpenCameraLive(button.dataset.siteId ?? "", button.dataset.deviceId ?? ""));
   }
   document.querySelector<HTMLFormElement>("#global-settings-form")?.addEventListener("submit", handlers.handleGlobalSettingsSubmit);
   document.querySelector<HTMLFormElement>("#customer-form")?.addEventListener("submit", handlers.handleCustomerSubmit);
