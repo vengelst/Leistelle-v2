@@ -772,7 +772,7 @@ BACKUP_DIR='$BackupDir' bash './scripts/backup-postgres.sh'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
+$remoteComposeCommand run --rm -e ALLOW_DESTRUCTIVE_SEED=true backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
@@ -968,7 +968,7 @@ rm -f '$remoteMediaArchivePath'
   $remoteSeedCommand = if ($RunSeed) {
     @"
 echo 'WARNUNG: Seed wird explizit ausgefuehrt.'
-$remoteComposeCommand run --rm backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
+$remoteComposeCommand run --rm -e ALLOW_DESTRUCTIVE_SEED=true backend sh -lc 'node apps/backend/dist/scripts/seed.js' </dev/null
 "@
   } else {
     "echo 'Kein Seed angefordert.'"
