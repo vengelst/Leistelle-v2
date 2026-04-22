@@ -23,6 +23,8 @@ import {
   compactPipelineFilter,
   downloadAccessDocument,
   downloadExportDocument,
+  downloadTextDocument,
+  escapeHtml,
   normalizeOptionalField,
   parseDateTimeLocalValue,
   openAccessDocument,
@@ -69,6 +71,8 @@ export function createAlarmHandlers(
   | "handleCloseSubmit"
   | "handleQuickAction"
   | "handleAlarmExport"
+  | "handleAlarmPrint"
+  | "handleAlarmPrintDownload"
   | "handleAlarmMediaAccess"
   | "handleDetail"
   | "handleOperatorAccept"
@@ -205,7 +209,12 @@ export function createAlarmHandlers(
       return;
     }
 
-    const visibleIds = new Set(detail.media.slice(0, 3).map((media) => media.id));
+    const snapshotIds = detail.media
+      .filter((media) => media.mediaKind === "snapshot" || media.mimeType?.startsWith("image/"))
+      .slice(0, 3)
+      .map((media) => media.id);
+    const clipId = detail.media.find((media) => media.mediaKind === "clip" || media.mimeType?.startsWith("video/"))?.id;
+    const visibleIds = new Set(clipId ? [...snapshotIds, clipId] : snapshotIds);
     state.selectedAlarmMediaPreviews = Object.fromEntries(
       Object.entries(state.selectedAlarmMediaPreviews).filter(([mediaId]) => visibleIds.has(mediaId))
     );
@@ -251,6 +260,127 @@ export function createAlarmHandlers(
       })
     );
   }
+
+  async function ensureImagePreviewSources(detail: AlarmCaseDetail): Promise<string[]> {
+    const imageMedia = detail.media
+      .filter((media) => media.mediaKind === "snapshot" || media.mimeType?.startsWith("image/"))
+      .slice(0, 3);
+    const sources: string[] = [];
+
+    for (const media of imageMedia) {
+      const existingPreview = state.selectedAlarmMediaPreviews[media.id];
+      if (existingPreview?.mimeType.startsWith("image/")) {
+        sources.push(`data:${existingPreview.mimeType};base64,${existingPreview.contentBase64}`);
+        continue;
+      }
+
+      if (media.storageKey.startsWith("data:image/")) {
+        sources.push(media.storageKey);
+        continue;
+      }
+
+      if (media.storageKey.startsWith("http://") || media.storageKey.startsWith("https://")) {
+        try {
+          const response = await fetch(media.storageKey, { method: "GET" });
+          if (!response.ok) {
+            continue;
+          }
+          const blob = await response.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === "string") {
+                resolve(reader.result);
+              } else {
+                reject(new Error("Bild konnte nicht als Data-URL gelesen werden."));
+              }
+            };
+            reader.onerror = () => reject(new Error("Bild konnte nicht gelesen werden."));
+            reader.readAsDataURL(blob);
+          });
+          sources.push(dataUrl);
+          continue;
+        } catch {
+          // Bei externen Quellen ohne CORS/Erreichbarkeit faellt dieses Bild fuer die Druckdatei aus.
+          continue;
+        }
+      }
+
+      try {
+        const response = await apiRequest<{ document: AlarmMediaAccessDocument }>(
+          buildMediaAccessPath(detail, media.id, "inline"),
+          { method: "GET" }
+        );
+        const preview = response.document;
+        state.selectedAlarmMediaPreviews = {
+          ...state.selectedAlarmMediaPreviews,
+          [media.id]: preview
+        };
+        if (preview.mimeType.startsWith("image/")) {
+          sources.push(`data:${preview.mimeType};base64,${preview.contentBase64}`);
+        }
+      } catch {
+        // Einzelne fehlende Bilder sollen den Druck nicht komplett verhindern.
+      }
+    }
+
+    return sources;
+  }
+
+  function buildAlarmPrintHtml(detail: AlarmCaseDetail, report: AlarmCaseReport | null, imageSources: string[]): string {
+    const alarmCase = detail.alarmCase;
+    const site = state.overview?.sites.find((entry) => entry.id === alarmCase.siteId);
+    const activeAssignment = detail.assignments.find((entry) => entry.assignmentStatus === "active");
+    const rows = [
+      ["Alarm-ID", alarmCase.id],
+      ["Titel", alarmCase.title],
+      ["Standort", site?.siteName ?? alarmCase.siteId],
+      ["Kunde", site?.customer.name ?? "-"],
+      ["Adresse", site ? `${site.address.street}, ${site.address.postalCode} ${site.address.city}, ${site.address.country}` : "-"],
+      ["Alarmtyp", alarmCase.alarmType],
+      ["Prioritaet", alarmCase.priority],
+      ["Status", alarmCase.lifecycleStatus],
+      ["Bewertung", alarmCase.assessmentStatus],
+      ["Empfangen", alarmCase.receivedAt],
+      ["Geoeffnet am", alarmCase.firstOpenedAt ?? activeAssignment?.assignedAt ?? "-"],
+      ["Bearbeitet von", activeAssignment?.userId ?? "-"]
+    ];
+
+    return `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Druckansicht ${escapeHtml(alarmCase.id)}</title>
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 24px; color: #1d2a2f; }
+    h1, h2 { margin: 0 0 10px 0; }
+    .meta { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .meta td { border: 1px solid #d9d9d9; padding: 6px 8px; vertical-align: top; }
+    .images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+    .images img { width: 100%; height: auto; border: 1px solid #d9d9d9; border-radius: 4px; }
+    .section { margin-top: 14px; }
+    @media print { body { margin: 12mm; } }
+  </style>
+</head>
+<body>
+  <h1>Alarmdruck ${escapeHtml(alarmCase.id)}</h1>
+  <table class="meta">
+    ${rows.map(([label, value]) => `<tr><td><strong>${escapeHtml(String(label ?? ""))}</strong></td><td>${escapeHtml(String(value ?? "-"))}</td></tr>`).join("")}
+  </table>
+  <h2>Bilder</h2>
+  <div class="images">
+    ${imageSources.length > 0
+      ? imageSources.map((src, index) => `<figure><img src="${escapeHtml(src)}" alt="Alarmbild ${index + 1}" /></figure>`).join("")
+      : "<p>Keine Bildvorschau verfuegbar.</p>"}
+  </div>
+  <div class="section">
+    <h2>Zusammenfassung</h2>
+    <p>${escapeHtml(report?.narrative.overview.join(" ") ?? "Keine zusaetzliche Zusammenfassung vorhanden.")}</p>
+  </div>
+</body>
+</html>`;
+  }
+
 
   function syncSelectedAlarmCase(items: AlarmPipelineItem[]): void {
     if (state.selectedAlarmDetail) {
@@ -535,6 +665,48 @@ export function createAlarmHandlers(
         state.error = null;
       } catch (error) {
         state.error = error instanceof Error ? error.message : "Export konnte nicht erzeugt werden.";
+        state.message = null;
+      }
+      deps.render();
+    },
+    async handleAlarmPrint(): Promise<void> {
+      const detail = state.selectedAlarmDetail;
+      if (!detail) {
+        return;
+      }
+      try {
+        const imageSources = await ensureImagePreviewSources(detail);
+        const report = state.selectedAlarmReport;
+        const alarmCase = detail.alarmCase;
+        const html = buildAlarmPrintHtml(detail, report, imageSources);
+        const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
+        if (!printWindow) {
+          throw new Error("Druckfenster konnte nicht geoeffnet werden (Popup-Blocker pruefen).");
+        }
+        printWindow.document.open();
+        printWindow.document.write(`${html}<script>window.focus();window.print();</script>`);
+        printWindow.document.close();
+        state.message = "Druckansicht geoeffnet. Alternativ kann PDF Download genutzt werden.";
+        state.error = null;
+      } catch (error) {
+        state.error = error instanceof Error ? error.message : "Druckansicht konnte nicht erstellt werden.";
+        state.message = null;
+      }
+      deps.render();
+    },
+    async handleAlarmPrintDownload(): Promise<void> {
+      const detail = state.selectedAlarmDetail;
+      if (!detail) {
+        return;
+      }
+      try {
+        const imageSources = await ensureImagePreviewSources(detail);
+        const html = buildAlarmPrintHtml(detail, state.selectedAlarmReport, imageSources);
+        downloadTextDocument(`${detail.alarmCase.id}-druckansicht.html`, html, "text/html;charset=utf-8");
+        state.message = "Druckdatei heruntergeladen.";
+        state.error = null;
+      } catch (error) {
+        state.error = error instanceof Error ? error.message : "Druckdatei konnte nicht erzeugt werden.";
         state.message = null;
       }
       deps.render();

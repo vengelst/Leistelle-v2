@@ -65,6 +65,8 @@ export type FalseAlarmCloseMode = "instant" | "confirm";
 export type AlarmPipelineTableColumnKey =
   | "position"
   | "time"
+  | "openedAt"
+  | "handledBy"
   | "site"
   | "customer"
   | "alarmType"
@@ -283,6 +285,8 @@ export const state: FrontendState = {
     visibleColumns: {
       position: true,
       time: true,
+      openedAt: true,
+      handledBy: true,
       site: true,
       customer: true,
       alarmType: true,
@@ -302,6 +306,8 @@ export const state: FrontendState = {
     columnWidths: {
       position: 70,
       time: 180,
+      openedAt: 190,
+      handledBy: 180,
       site: 220,
       customer: 220,
       alarmType: 150,
@@ -418,6 +424,8 @@ export function resetSessionScopedState(): void {
     visibleColumns: {
       position: true,
       time: true,
+      openedAt: true,
+      handledBy: true,
       site: true,
       customer: true,
       alarmType: true,
@@ -437,6 +445,8 @@ export function resetSessionScopedState(): void {
     columnWidths: {
       position: 70,
       time: 180,
+      openedAt: 190,
+      handledBy: 180,
       site: 220,
       customer: 220,
       alarmType: 150,

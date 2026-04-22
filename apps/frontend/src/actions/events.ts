@@ -98,6 +98,8 @@ export type AppHandlers = {
   handleCloseSubmit: (event: SubmitEvent) => Promise<void>;
   handleQuickAction: (actionTypeId: string) => Promise<void>;
   handleAlarmExport: (format: AlarmCaseExportFormat) => Promise<void>;
+  handleAlarmPrint: () => Promise<void>;
+  handleAlarmPrintDownload: () => Promise<void>;
   handleArchiveOpen: (alarmCaseId: string) => Promise<void>;
   handleAlarmMediaAccess: (mediaId: string, mode: AlarmMediaAccessMode) => Promise<void>;
   handleDetail: (alarmCaseId: string) => Promise<void>;
@@ -660,6 +662,12 @@ export function bindAppEvents(handlers: AppHandlers): void {
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".detail-export-button"))) {
     button.addEventListener("click", () => void handlers.handleAlarmExport((button.dataset.format ?? "case_report") as AlarmCaseExportFormat));
   }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".alarm-print-button"))) {
+    button.addEventListener("click", () => void handlers.handleAlarmPrint());
+  }
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".alarm-print-download-button"))) {
+    button.addEventListener("click", () => void handlers.handleAlarmPrintDownload());
+  }
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".archive-open-button"))) {
     button.addEventListener("click", () => void handlers.handleArchiveOpen(button.dataset.alarmCaseId ?? ""));
   }
@@ -673,6 +681,20 @@ export function bindAppEvents(handlers: AppHandlers): void {
     button.addEventListener("click", () => {
       setPendingOperatorFocusRequest({ zone: "detail" });
       void handlers.handleDetail(button.dataset.alarmCaseId ?? "");
+    });
+  }
+  for (const row of Array.from(document.querySelectorAll<HTMLTableRowElement>("[data-alarm-table-row]"))) {
+    row.addEventListener("click", () => {
+      setPendingOperatorFocusRequest({ zone: "detail" });
+      void handlers.handleOperatorAccept(row.dataset.alarmCaseId ?? "");
+    });
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      setPendingOperatorFocusRequest({ zone: "detail" });
+      void handlers.handleOperatorAccept(row.dataset.alarmCaseId ?? "");
     });
   }
   for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>(".operator-accept-button"))) {

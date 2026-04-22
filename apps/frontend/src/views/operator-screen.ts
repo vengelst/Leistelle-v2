@@ -54,6 +54,8 @@ type AlarmTableColumnDefinition = {
 const alarmTableColumns: AlarmTableColumnDefinition[] = [
   { key: "position", label: "Pos" },
   { key: "time", label: "Zeit" },
+  { key: "openedAt", label: "Geoeffnet am" },
+  { key: "handledBy", label: "Bearbeitet von" },
   { key: "site", label: "Standort" },
   { key: "customer", label: "Kunde" },
   { key: "alarmType", label: "Alarmtyp" },
@@ -100,14 +102,48 @@ export function renderAlarmPipelineTableOnly(): string {
   const tablePanel = state.alarmScreenLayout.table;
   const mediaPanel = state.alarmScreenLayout.media;
   const visibleColumns = alarmTableColumns.filter((column) => tableConfig.visibleColumns[column.key]);
+  const formatTableDateAndTime = (value: string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        date: formatTimestamp(value),
+        time: ""
+      };
+    }
+    return {
+      date: new Intl.DateTimeFormat("de-DE", { dateStyle: "short" }).format(parsed),
+      time: new Intl.DateTimeFormat("de-DE", { timeStyle: "medium" }).format(parsed)
+    };
+  };
   const renderCell = (columnKey: AlarmPipelineTableColumnKey, alarm: (typeof alarms)[number], index: number, isSelected: boolean, assignmentLabel: string) => {
     switch (columnKey) {
       case "position":
         return `${index + 1}`;
       case "time":
-        return formatTimestamp(alarm.receivedAt);
+        const received = formatTableDateAndTime(alarm.receivedAt);
+        return `
+          <span class="alarm-table-date-time">
+            <span>${escapeHtml(received.date)}</span>
+            <span>${escapeHtml(received.time || "-")}</span>
+          </span>
+        `;
       case "site":
         return escapeHtml(alarm.siteName);
+      case "openedAt": {
+        const openedAt = alarm.firstOpenedAt ?? alarm.activeAssignment?.assignedAt;
+        if (!openedAt) {
+          return "-";
+        }
+        const opened = formatTableDateAndTime(openedAt);
+        return `
+          <span class="alarm-table-date-time">
+            <span>${escapeHtml(opened.date)}</span>
+            <span>${escapeHtml(opened.time || "-")}</span>
+          </span>
+        `;
+      }
+      case "handledBy":
+        return escapeHtml(alarm.activeAssignment?.displayName ?? "-");
       case "customer":
         return escapeHtml(alarm.customerName);
       case "alarmType":
@@ -135,7 +171,17 @@ export function renderAlarmPipelineTableOnly(): string {
       case "age":
         return formatRelativeAge(alarm.receivedAt);
       case "action":
-        return `<button type="button" class="secondary detail-button operator-entry-button" data-operator-entry-button="true" data-alarm-case-id="${alarm.id}" aria-current="${isSelected ? "true" : "false"}">${isSelected ? "Geoeffnet" : "Oeffnen"}</button>`;
+        if (alarm.activeAssignment || alarm.firstOpenedAt) {
+          const openedBy = escapeHtml(alarm.activeAssignment?.displayName ?? "-");
+          const openedAt = formatTimestamp(alarm.firstOpenedAt ?? alarm.activeAssignment?.assignedAt ?? alarm.receivedAt);
+          return `
+            <span class="alarm-table-date-time">
+              <span>${openedAt}</span>
+              <span>${openedBy}</span>
+            </span>
+          `;
+        }
+        return "-";
       default:
         return "";
     }
@@ -160,7 +206,7 @@ export function renderAlarmPipelineTableOnly(): string {
               title="${state.themeMode === "dark" ? "Hell" : "Dunkel"}"
             >${state.themeMode === "dark" ? "☀" : "☾"}</button>
           </div>
-          <details open>
+          <details>
             <summary>Spalten</summary>
             <div class="alarm-pipeline-table-control-grid">
               ${alarmTableColumns.map((column) => `
@@ -206,7 +252,13 @@ export function renderAlarmPipelineTableOnly(): string {
                     ? "anderer Bearbeiter"
                     : "frei";
                 return `
-                  <tr class="${isSelected ? "is-selected" : ""}">
+                  <tr
+                    class="alarm-pipeline-click-row ${isSelected ? "is-selected" : ""}"
+                    data-alarm-case-id="${alarm.id}"
+                    data-alarm-table-row
+                    tabindex="0"
+                    aria-current="${isSelected ? "true" : "false"}"
+                  >
                     ${visibleColumns.map((column) => `<td>${renderCell(column.key, alarm, index, isSelected, assignmentLabel)}</td>`).join("")}
                   </tr>
                 `;
@@ -246,11 +298,95 @@ function renderAlarmPipelineMediaPanel(): string {
   }
 
   const detail = state.selectedAlarmDetail;
+  const isReadOnly = detail.isArchived || detail.alarmCase.lifecycleStatus === "resolved" || detail.alarmCase.lifecycleStatus === "archived";
+  const planWorkspace = renderSitePlanWorkspace(detail.alarmCase.siteId, "alarm");
   return `
     <section class="stack compact alarm-pipeline-media-content">
+      <div class="actions alarm-pipeline-media-actions">
+        <button
+          type="button"
+          class="secondary intake-false-alarm-button"
+          data-alarm-case-id="${detail.alarmCase.id}"
+          ${isReadOnly ? "disabled" : ""}
+        >Fehlalarm</button>
+        <button type="button" class="secondary alarm-print-button">Druck</button>
+        <button type="button" class="secondary alarm-print-download-button">Druckdatei Download</button>
+        <button type="button" class="secondary detail-export-button" data-format="pdf">PDF Download</button>
+      </div>
       ${renderAlarmIntakeImageStrip(detail)}
-      <article class="subcard stack compact">
-        ${renderAlarmIntakeClipCard(detail, undefined)}
+      <article class="subcard stack compact alarm-pipeline-clip-box">
+        <h4>Clip-Box</h4>
+        ${renderAlarmPipelineClipBox(detail)}
+      </article>
+      <article class="subcard stack compact alarm-pipeline-site-plan-box">
+        <h4>Standort und Kamera</h4>
+        ${planWorkspace || renderEmptyState("Fuer diesen Standort ist kein Objekt- oder Kameraplan hinterlegt.")}
+      </article>
+    </section>
+  `;
+}
+
+function renderAlarmPipelineClipBox(detail: NonNullable<typeof state.selectedAlarmDetail>): string {
+  const alarmCase = detail.alarmCase;
+  const site = state.overview?.sites.find((entry) => entry.id === alarmCase.siteId);
+  const camera = site?.devices.find((device) => device.id === alarmCase.primaryDeviceId);
+  const clipMedia = detail.media.find((media) => media.mediaKind === "clip" || media.mimeType?.startsWith("video/"));
+  const clipPreview = clipMedia ? state.selectedAlarmMediaPreviews[clipMedia.id] : undefined;
+  const clipPreviewError = clipMedia ? state.selectedAlarmMediaPreviewErrors[clipMedia.id] : undefined;
+  const directClipSource = clipMedia && (
+    clipMedia.storageKey.startsWith("http://")
+    || clipMedia.storageKey.startsWith("https://")
+    || clipMedia.storageKey.startsWith("data:video/")
+  )
+    ? escapeHtml(clipMedia.storageKey)
+    : "";
+  const clipSrc = clipPreview ? escapeHtml(`data:${clipPreview.mimeType};base64,${clipPreview.contentBase64}`) : "";
+
+  const clipVisual = !clipMedia
+    ? `<p class="muted">Kein Clip vorhanden.</p>`
+    : directClipSource
+      ? `<div class="alarm-media-preview-surface"><video class="alarm-media-preview-embed" src="${directClipSource}" controls preload="metadata"></video></div>`
+    : clipPreview?.mimeType.startsWith("video/")
+      ? `<div class="alarm-media-preview-surface"><video class="alarm-media-preview-embed" src="${clipSrc}" controls preload="metadata"></video></div>`
+      : clipPreviewError
+        ? `<p class="muted">${escapeHtml(clipPreviewError)}</p>`
+        : `<p class="muted">Clip wird geladen.</p>`;
+
+  return `
+    <section class="alarm-pipeline-clip-grid">
+      <article class="alarm-pipeline-clip-column">
+        <h5>Alarm-Kontext</h5>
+        <dl class="facts compact-gap">
+          <div><dt>Eingang</dt><dd>${formatTimestamp(alarmCase.receivedAt)}</dd></div>
+          <div><dt>Quellzeit</dt><dd>${alarmCase.sourceOccurredAt ? formatTimestamp(alarmCase.sourceOccurredAt) : "-"}</dd></div>
+          <div><dt>Letzte Aktivitaet</dt><dd>${formatTimestamp(alarmCase.lastEventAt)}</dd></div>
+          <div><dt>Quelle</dt><dd>${escapeHtml(alarmCase.primaryDeviceId ?? "-")}</dd></div>
+          <div><dt>Externe Ref</dt><dd>${escapeHtml(alarmCase.externalSourceRef ?? "-")}</dd></div>
+          <div><dt>Alarmalter</dt><dd>${formatRelativeAge(alarmCase.receivedAt)}</dd></div>
+        </dl>
+      </article>
+      <article class="alarm-pipeline-clip-column alarm-pipeline-clip-center">
+        ${clipVisual}
+      </article>
+      <article class="alarm-pipeline-clip-column">
+        <section class="alarm-pipeline-clip-side-section">
+          <h5>Standort</h5>
+          <dl class="facts compact-gap">
+            <div><dt>Standort</dt><dd>${escapeHtml(site?.siteName ?? alarmCase.siteId)}</dd></div>
+            <div><dt>Kunde</dt><dd>${escapeHtml(site?.customer.name ?? "-")}</dd></div>
+            <div><dt>Adresse</dt><dd>${site ? escapeHtml(`${site.address.street}, ${site.address.postalCode} ${site.address.city}, ${site.address.country}`) : "-"}</dd></div>
+            <div><dt>Kamera</dt><dd>${escapeHtml(camera?.name ?? alarmCase.primaryDeviceId ?? "-")}</dd></div>
+          </dl>
+        </section>
+        <section class="alarm-pipeline-clip-side-section">
+          <h5>Clip-Info</h5>
+          <dl class="facts compact-gap">
+            <div><dt>Typ</dt><dd>${escapeHtml(clipMedia?.mediaKind ?? "-")}</dd></div>
+            <div><dt>MIME</dt><dd>${escapeHtml(clipMedia?.mimeType ?? "-")}</dd></div>
+            <div><dt>Erfasst</dt><dd>${clipMedia ? formatTimestamp(clipMedia.capturedAt ?? clipMedia.createdAt) : "-"}</dd></div>
+            <div><dt>Media-ID</dt><dd>${escapeHtml(clipMedia?.id ?? "-")}</dd></div>
+          </dl>
+        </section>
       </article>
     </section>
   `;
@@ -400,7 +536,6 @@ function renderAlarmIntakeImageStrip(detail: NonNullable<typeof state.selectedAl
             <strong>Bild ${index + 1}</strong>
             <p class="muted">${formatTimestamp(media.capturedAt ?? media.createdAt)}</p>
             ${previewMarkup}
-            <button type="button" class="secondary alarm-media-preview-button" data-media-id="${media.id}">Bild oeffnen</button>
           </article>
         `;
       }).join("")}
@@ -416,6 +551,8 @@ function renderAlarmIntakeClipCard(detail: NonNullable<typeof state.selectedAlar
   const clipMarkup = clipMedia
     ? clipPreview?.mimeType.startsWith("video/")
       ? `<div class="alarm-media-preview-surface"><video class="alarm-media-preview-embed" src="${clipSrc}" controls preload="metadata"></video></div>`
+      : clipPreview?.mimeType.startsWith("text/html")
+        ? `<div class="alarm-media-preview-surface"><iframe class="alarm-media-preview-embed" src="${clipSrc}" title="${escapeHtml(clipPreview.title)}" loading="lazy"></iframe></div>`
       : `<p class="muted">Clip-Vorschau wird geladen.</p>`
     : `<p class="muted">Kein Clip vorhanden.</p>`;
 

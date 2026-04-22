@@ -778,6 +778,8 @@ test("operator keyboard preparation binds focus zones, shortcuts and safe list n
       handleCloseSubmit: async () => undefined,
       handleQuickAction: async () => undefined,
       handleAlarmExport: async () => undefined,
+      handleAlarmPrint: async () => undefined,
+      handleAlarmPrintDownload: async () => undefined,
       handleArchiveOpen: async () => undefined,
       handleAlarmMediaAccess: async () => undefined,
       handleDetail: async () => {
